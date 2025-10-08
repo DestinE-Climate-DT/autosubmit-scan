@@ -15,6 +15,7 @@ from typing import List, Dict, Any
 from datetime import datetime
 
 from src.domain.models import ErrorCatalog, ErrorDefinition
+from src.cli.completion import normalize_uri_for_fsspec
 
 
 def get_file_hash(uri: str) -> str:
@@ -129,8 +130,11 @@ def get_fingerprint(uri: str) -> Dict[str, Any]:
         'md5:a1b2c3d4...'
     """
     try:
+        # Normalize rsync-style URIs to fsspec format
+        normalized_uri = normalize_uri_for_fsspec(uri)
+
         # Open file with fsspec
-        fs, _, paths = fsspec.core.get_fs_token_paths(uri)
+        fs, _, paths = fsspec.core.get_fs_token_paths(normalized_uri)
 
         # Get file info
         file_info = fs.info(paths[0])

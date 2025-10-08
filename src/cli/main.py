@@ -38,8 +38,8 @@ def cli(verbose, quiet):
 
     \b
     Common workflows:
-      1. Initialize a new catalog:
-         $ as-scan init --output my_catalog.yaml
+      1. Initialize a new catalog interactively:
+         $ as-scan init
 
       2. Validate your catalog:
          $ as-scan validate my_catalog.yaml
@@ -52,6 +52,13 @@ def cli(verbose, quiet):
 
       5. Export to markdown:
          $ as-scan export ./results/report.json --template markdown --output report.md
+
+    \b
+    Supported file URIs:
+      - SSH:   ssh://user@host/path/to/logs/**/*.log
+      - SFTP:  sftp://user@host/path/to/logs/**/*.out
+      - Local: /var/log/**/*.log
+      - S3:    s3://bucket/prefix/**/*.log
     """
     # Configure logging level
     if verbose:

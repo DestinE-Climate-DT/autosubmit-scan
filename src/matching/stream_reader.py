@@ -3,13 +3,15 @@
 Provides memory-efficient line-by-line reading for files accessed via:
 - Local filesystem
 - S3 (s3://)
-- SSH (ssh://)
-- SFTP (sftp://)
+- SSH (ssh://) with rsync-style notation (ssh://host:/path)
+- SFTP (sftp://) with rsync-style notation (sftp://host:/path)
 - FTP (ftp://)
 """
 
 import fsspec
 from typing import Iterator, Tuple, List, Optional
+
+from src.cli.completion import normalize_uri_for_fsspec
 
 
 class FileStream:
@@ -54,8 +56,11 @@ class FileStream:
             >>> stream = FileStream.open_file("sftp://user@host/path/file.log")
         """
         try:
+            # Normalize rsync-style URIs to fsspec format
+            normalized_uri = normalize_uri_for_fsspec(uri)
+
             # Open file with fsspec
-            file_handle = fsspec.open(uri, mode='r', encoding='utf-8')
+            file_handle = fsspec.open(normalized_uri, mode='r', encoding='utf-8')
             opened_file = file_handle.open()
 
             return cls(opened_file, uri, strip_newlines)
@@ -84,7 +89,8 @@ class FileStream:
             # Some protocols don't support seeking
             # Close and reopen the file
             self.close()
-            self.file_handle = fsspec.open(self.uri, mode='r', encoding='utf-8').open()
+            normalized_uri = normalize_uri_for_fsspec(self.uri)
+            self.file_handle = fsspec.open(normalized_uri, mode='r', encoding='utf-8').open()
 
         line_number = 1
         for line in self.file_handle:

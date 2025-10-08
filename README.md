@@ -184,11 +184,25 @@ errors:
 
 ### File URIs
 
-Supported URI schemes:
-- `file:///path/to/file` or `/path/to/file` - Local filesystem
+Supported URI schemes with **rsync-style notation** for SSH/SFTP:
+- `/path/to/file` - Local filesystem
+- `ssh://hostname:/path/**/*.log` - SSH (rsync-style with colon)
+- `sftp://hostname:/path/**/*.log` - SFTP (rsync-style with colon)
 - `s3://bucket/path/**/*.log` - Amazon S3
-- `sftp://user@host/path/**/*.log` - SFTP
 - `ftp://user:pass@host/path/**/*.log` - FTP
+
+**SSH Config Support**: The tool automatically reads `~/.ssh/config` to resolve:
+- Host aliases (e.g., `ssh://lumi:/path` resolves to actual hostname)
+- Usernames, ports, and identity files
+- All SSH configuration options
+
+Example:
+```yaml
+files:
+  - "ssh://lumi:/scratch/project_12345/logs/**/*.out"
+  - "sftp://mn5:/gpfs/projects/myproject/**/*.err"
+  - "/local/path/to/logs/**/*.log"
+```
 
 ### Railway Pattern
 
