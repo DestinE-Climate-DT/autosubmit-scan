@@ -1,0 +1,584 @@
+# User Guide
+
+Complete guide to using autosubmit-scan for error monitoring and analysis.
+
+## Table of Contents
+
+1. [Installation](#installation)
+2. [Catalog Syntax](#catalog-syntax)
+3. [Pattern Matchers](#pattern-matchers)
+4. [Condition Types](#condition-types)
+5. [Railway Pattern](#railway-pattern)
+6. [CLI Commands](#cli-commands)
+7. [Template Customization](#template-customization)
+8. [Remote File Access](#remote-file-access)
+
+## Installation
+
+### With Pixi
+
+```bash
+git clone https://github.com/DestinE-Climate-DT/autosubmit-scan.git
+cd autosubmit-scan
+pixi install
+pixi run autosubmit-scan --help
+```
+
+### With pip
+
+```bash
+pip install -e .
+autosubmit-scan --help
+```
+
+## Catalog Syntax
+
+### Basic Structure
+
+```yaml
+version: "1.0.0"
+schema_version: "1.0.0"
+
+metadata:
+  name: "Catalog Name"
+  description: "What this catalog monitors"
+  author: "Your Name"
+  created: "2024-01-01T00:00:00+00:00"
+  updated: "2024-01-01T00:00:00+00:00"
+
+errors:
+  error_id:
+    id: "error_id"              # Unique identifier
+    pattern: {...}              # Pattern configuration
+    files: []                   # File patterns to scan
+    meaning: "What this means"  # Human-readable explanation
+    suggestion: "How to fix"    # Remediation advice
+    context_lines: 5            # Lines of context to capture
+    next_errors: []             # Railway pattern chains
+    metadata: {}                # Custom metadata
+```
+
+### Field Descriptions
+
+- **version**: Catalog format version (currently 1.0.0)
+- **schema_version**: Schema version for validation
+- **metadata**: Catalog-level metadata
+  - **name**: Human-readable catalog name
+  - **description**: Purpose of this catalog
+  - **author**: Who created it
+  - **created**: ISO 8601 timestamp
+  - **updated**: ISO 8601 timestamp
+- **errors**: Dictionary of error definitions
+  - **id**: Must match the key in the errors dict
+  - **pattern**: Pattern matching configuration
+  - **files**: List of file patterns (glob, URI schemes supported)
+  - **meaning**: What does this error signify?
+  - **suggestion**: How should users respond?
+  - **context_lines**: How many lines before/after to capture
+  - **next_errors**: Railway pattern conditional chains
+  - **metadata**: Custom fields (severity, tags, etc.)
+
+## Pattern Matchers
+
+### 1. Literal Pattern
+
+Exact string matching:
+
+```yaml
+pattern:
+  type: "literal"
+  pattern: "OOM killed"
+```
+
+### 2. Regex Pattern
+
+Regular expression matching with optional flags:
+
+```yaml
+pattern:
+  type: "regex"
+  pattern: "ERROR:\\s+(\\w+)\\s+failed"
+  flags:
+    - "IGNORECASE"
+    - "MULTILINE"
+```
+
+**Available flags:**
+- `IGNORECASE`: Case-insensitive matching
+- `MULTILINE`: ^ and $ match line boundaries
+- `DOTALL`: . matches newlines
+- `VERBOSE`: Allow comments in regex
+
+### 3. Callable Pattern
+
+Custom Python function for complex matching:
+
+```yaml
+pattern:
+  type: "callable"
+  pattern: "my_module.matchers:check_memory_threshold"
+```
+
+Function signature:
+```python
+def check_memory_threshold(line: str) -> bool:
+    """Return True if line matches pattern."""
+    # Custom logic here
+    return result
+```
+
+## Condition Types
+
+Conditions determine when railway pattern errors trigger.
+
+### 1. Always Condition
+
+Always execute the next error:
+
+```yaml
+when:
+  type: "always"
+```
+
+### 2. Field Equals
+
+Check if a field equals a value:
+
+```yaml
+when:
+  type: "field_equals"
+  field: "metadata.severity"
+  operator: "=="
+  value: "critical"
+```
+
+**Operators:** `==`, `!=`, `>`, `<`, `>=`, `<=`
+
+### 3. Field Contains
+
+Check if a field contains a substring:
+
+```yaml
+when:
+  type: "field_contains"
+  field: "matched_text"
+  operator: "contains"
+  value: "timeout"
+```
+
+**Operators:** `contains`, `not_contains`, `startswith`, `endswith`
+
+### 4. Field Regex
+
+Match field against regex:
+
+```yaml
+when:
+  type: "field_regex"
+  field: "matched_text"
+  operator: "regex"
+  value: "\\d{3,4}"
+```
+
+### 5. Custom Condition
+
+Use custom Python function:
+
+```yaml
+when:
+  type: "custom"
+  callable: "my_module.conditions:is_critical"
+```
+
+Function signature:
+```python
+from src.domain.models import ErrorMatch, ErrorDefinition, ErrorCatalog
+
+def is_critical(
+    match: ErrorMatch,
+    error_def: ErrorDefinition,
+    catalog: ErrorCatalog
+) -> bool:
+    """Return True if condition is met."""
+    return match.metadata.get("severity") == "critical"
+```
+
+### 6. Logical Operators
+
+Combine conditions with AND/OR:
+
+```yaml
+when:
+  type: "and"
+  conditions:
+    - type: "field_equals"
+      field: "severity"
+      value: "high"
+    - type: "or"
+      conditions:
+        - type: "field_contains"
+          field: "matched_text"
+          value: "urgent"
+        - type: "field_contains"
+          field: "matched_text"
+          value: "critical"
+```
+
+## Railway Pattern
+
+The railway pattern enables conditional error chaining. When an error is detected, conditions determine which errors to check next.
+
+### Simple Chain
+
+```yaml
+errors:
+  step1:
+    id: "step1"
+    # ... pattern, files, etc ...
+    next_errors:
+      - error_id: "step2"
+        when:
+          type: "always"
+
+  step2:
+    id: "step2"
+    # ... continues the chain ...
+    next_errors: []
+```
+
+### Conditional Branching
+
+```yaml
+errors:
+  main_error:
+    id: "main_error"
+    next_errors:
+      - error_id: "path_a"
+        when:
+          type: "field_equals"
+          field: "metadata.environment"
+          value: "production"
+      - error_id: "path_b"
+        when:
+          type: "field_equals"
+          field: "metadata.environment"
+          value: "staging"
+
+  path_a:
+    id: "path_a"
+    # Production-specific checks
+    next_errors: []
+
+  path_b:
+    id: "path_b"
+    # Staging-specific checks
+    next_errors: []
+```
+
+### Complex Conditions
+
+```yaml
+next_errors:
+  - error_id: "escalate"
+    when:
+      type: "and"
+      conditions:
+        - type: "field_equals"
+          field: "metadata.severity"
+          value: "critical"
+        - type: "or"
+          conditions:
+            - type: "custom"
+              callable: "checks:is_weekend"
+            - type: "custom"
+              callable: "checks:is_night"
+```
+
+## CLI Commands
+
+### Initialize Catalog
+
+```bash
+# Create sample catalog
+autosubmit-scan init
+
+# Specify output path
+autosubmit-scan init --output my_catalog.yaml
+
+# Overwrite existing
+autosubmit-scan init --output my_catalog.yaml --force
+```
+
+### Validate Catalog
+
+```bash
+# Basic validation
+autosubmit-scan validate my_catalog.yaml
+
+# With JSON schema
+autosubmit-scan validate my_catalog.yaml --schema schema.json
+```
+
+### Run Scan
+
+```bash
+# Basic scan
+autosubmit-scan scan --catalog my_catalog.yaml
+
+# Specify output directory
+autosubmit-scan scan --catalog my_catalog.yaml --output ./results
+
+# Use multiple cores
+autosubmit-scan scan --catalog my_catalog.yaml --cores 8
+
+# Dry run (show plan)
+autosubmit-scan scan --catalog my_catalog.yaml --dryrun
+
+# Force re-execution
+autosubmit-scan scan --catalog my_catalog.yaml --force
+```
+
+### View Results
+
+```bash
+# Launch TUI
+autosubmit-scan view ./results/report.json
+```
+
+**TUI Navigation:**
+- Arrow keys: Navigate tree
+- Enter: Expand/collapse
+- q: Quit
+
+### Export Report
+
+```bash
+# Export to Markdown (default)
+autosubmit-scan export ./results/report.json
+
+# Specify format
+autosubmit-scan export ./results/report.json --template html
+
+# Specify output file
+autosubmit-scan export ./results/report.json --template markdown --output report.md
+```
+
+## Template Customization
+
+Templates are Jinja2 files in `src/reporting/templates/`.
+
+### Available Templates
+
+- `report.md.j2`: Markdown format
+- `report.html.j2`: HTML format
+- `summary.txt.j2`: Plain text summary
+
+### Template Data Structure
+
+```python
+{
+    "report": {
+        # Full JSON-LD report
+    },
+    "summary": {
+        "totalMatches": int,
+        "errorTypes": int,
+        "filesScanned": int,
+        "hostsScanned": [...]
+    },
+    "matches": [
+        {
+            "error_id": str,
+            "file_uri": str,
+            "line_number": int,
+            "matched_text": str,
+            "meaning": str,
+            "suggestion": str,
+            # ...
+        }
+    ],
+    "matches_by_error": {
+        "error_id": [matches...]
+    },
+    "metadata": {
+        "generated_at": str,
+        "report_date": str,
+        "author": str
+    }
+}
+```
+
+### Creating Custom Templates
+
+1. Create template file in `src/reporting/templates/`:
+
+```jinja2
+# my_template.j2
+# Custom Report
+Generated: {{ metadata.generated_at }}
+
+## Summary
+- Total Matches: {{ summary.totalMatches }}
+- Error Types: {{ summary.errorTypes }}
+
+{% for error_id, matches in matches_by_error.items() %}
+## {{ error_id }} ({{ matches|length }} matches)
+
+{% for match in matches %}
+- Line {{ match.line_number }}: {{ match.matched_text }}
+{% endfor %}
+{% endfor %}
+```
+
+2. Render with TemplateRenderer:
+
+```python
+from src.reporting.templates import TemplateRenderer
+
+renderer = TemplateRenderer()
+renderer.render("my_template.j2", data, "output.txt")
+```
+
+## Remote File Access
+
+### Local Files
+
+```yaml
+files:
+  - "/var/log/**/*.log"
+  - "file:///var/log/system/messages"
+```
+
+### S3 Buckets
+
+```yaml
+files:
+  - "s3://my-bucket/logs/**/*.log"
+  - "s3://my-bucket/slurm/*.out"
+```
+
+**Requirements:**
+- AWS credentials configured
+- boto3 and s3fs installed (via pixi)
+
+### SFTP
+
+```yaml
+files:
+  - "sftp://user@host.example.com/var/log/**/*.log"
+```
+
+**Requirements:**
+- SSH credentials/keys configured
+- paramiko and sshfs installed (via pixi)
+
+### FTP
+
+```yaml
+files:
+  - "ftp://user:password@ftp.example.com/logs/**/*.log"
+```
+
+**Requirements:**
+- FTP credentials in URI or .netrc
+- fsspec installed (via pixi)
+
+### Authentication
+
+**S3:** Use AWS CLI configuration or environment variables:
+```bash
+export AWS_ACCESS_KEY_ID=...
+export AWS_SECRET_ACCESS_KEY=...
+```
+
+**SFTP:** Use SSH keys or password in URI:
+```yaml
+files:
+  - "sftp://user:password@host/path/**/*.log"  # Not recommended
+  - "sftp://user@host/path/**/*.log"           # Uses SSH keys
+```
+
+**FTP:** Use .netrc file or password in URI:
+```yaml
+files:
+  - "ftp://user:pass@host/path/**/*.log"
+```
+
+## Best Practices
+
+### 1. Catalog Organization
+
+- One catalog per system/application
+- Group related errors together
+- Use descriptive error IDs
+- Document meaning and suggestions clearly
+
+### 2. Pattern Design
+
+- Start simple (literal), add complexity as needed
+- Test regex patterns before deployment
+- Use callable patterns for complex logic
+- Consider performance for large files
+
+### 3. Railway Pattern
+
+- Keep chains shallow (2-3 levels)
+- Avoid circular dependencies
+- Use meaningful condition logic
+- Document chain flow in metadata
+
+### 4. File Patterns
+
+- Use specific globs to reduce scanning
+- Group files by error type
+- Consider network latency for remote files
+- Use appropriate protocols (SFTP faster than FTP)
+
+### 5. Performance
+
+- Use multiple cores (`--cores 8`)
+- Cache fingerprints (automatic in Snakemake)
+- Limit context_lines for large files
+- Use dry run to test patterns first
+
+## Troubleshooting
+
+### Validation Errors
+
+```bash
+# Check YAML syntax
+autosubmit-scan validate my_catalog.yaml
+
+# Check detailed errors
+autosubmit-scan validate my_catalog.yaml --verbose
+```
+
+### No Matches Found
+
+- Verify file patterns are correct
+- Check pattern syntax (test regex separately)
+- Ensure files are accessible
+- Review logs for file discovery
+
+### Remote Access Issues
+
+**S3:**
+- Check AWS credentials
+- Verify bucket permissions
+- Test with AWS CLI first
+
+**SFTP:**
+- Verify SSH keys are configured
+- Test connection with sftp command
+- Check firewall rules
+
+### Performance Issues
+
+- Reduce file count with specific patterns
+- Increase cores for parallel processing
+- Use local cache for remote files
+- Profile with `--dryrun` first
+
+## Examples
+
+See [examples/sample_catalog.yaml](../examples/sample_catalog.yaml) for comprehensive examples covering all features.

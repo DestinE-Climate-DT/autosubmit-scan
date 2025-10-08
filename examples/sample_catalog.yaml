@@ -1,0 +1,448 @@
+version: "1.0.0"
+schema_version: "1.0.0"
+
+metadata:
+  name: "Sample Error Catalog"
+  description: "Example catalog demonstrating all pattern types and railway pattern"
+  author: "Error Scan Team"
+  created: "2024-01-01T00:00:00+00:00"
+  updated: "2024-01-01T00:00:00+00:00"
+
+errors:
+  # Example 1: SLURM Out of Memory Error
+  # Demonstrates: literal pattern, S3 URIs, railway pattern with conditions
+  slurm_oom:
+    id: "slurm_oom"
+    pattern:
+      type: "literal"
+      pattern: "OOM killed"
+    files:
+      - "s3://compute-logs/slurm/**/*.out"
+      - "s3://compute-logs/slurm/**/*.err"
+    meaning: "Job was killed due to out-of-memory condition"
+    context_lines: 10
+    suggestion: "Increase memory allocation in job script using #SBATCH --mem=<amount>"
+    next_errors:
+      - error_id: "memory_allocation_check"
+        when:
+          type: "always"
+    metadata:
+      severity: "high"
+      tags:
+        - "slurm"
+        - "memory"
+        - "resource"
+      notify:
+        - "ops@example.com"
+      docs_url: "https://docs.example.com/errors/slurm-oom"
+
+  # Example 2: SSH Connection Timeout
+  # Demonstrates: regex pattern with flags, SSH URIs, conditional railway
+  ssh_timeout:
+    id: "ssh_timeout"
+    pattern:
+      type: "regex"
+      pattern: "ssh:\\s+connect\\s+to\\s+host\\s+.*\\s+port\\s+\\d+:\\s+Connection\\s+timed\\s+out"
+      flags:
+        - "IGNORECASE"
+        - "MULTILINE"
+    files:
+      - "ssh://user@logserver:22/var/log/jobs/**/*.log"
+      - "ssh://user@logserver:22/var/log/scheduler/*.log"
+    meaning: "SSH connection to remote host timed out"
+    context_lines: 5
+    suggestion: "Check network connectivity, firewall rules, and SSH daemon status on target host"
+    next_errors:
+      - error_id: "network_connectivity_check"
+        when:
+          type: "or"
+          conditions:
+            - type: "field_equals"
+              field: "retry_count"
+              operator: ">"
+              value: 3
+            - type: "field_contains"
+              field: "matched_text"
+              operator: "contains"
+              value: "critical"
+    metadata:
+      severity: "medium"
+      tags:
+        - "ssh"
+        - "network"
+        - "connectivity"
+      retry_policy:
+        max_attempts: 3
+        backoff_seconds: 60
+
+  # Example 3: File System Error
+  # Demonstrates: regex pattern, SFTP URIs, complex AND/OR conditions
+  filesystem_full:
+    id: "filesystem_full"
+    pattern:
+      type: "regex"
+      pattern: "(No space left on device|Disk quota exceeded|Cannot allocate memory)"
+      flags:
+        - "IGNORECASE"
+    files:
+      - "sftp://user@storage.example.com/mnt/data/logs/**/*.log"
+      - "sftp://user@storage.example.com/mnt/scratch/jobs/*.err"
+    meaning: "File system is full or disk quota exceeded"
+    context_lines: 8
+    suggestion: "Clean up old files, increase quota, or expand storage capacity"
+    next_errors:
+      - error_id: "disk_cleanup_required"
+        when:
+          type: "and"
+          conditions:
+            - type: "field_equals"
+              field: "severity"
+              operator: "=="
+              value: "critical"
+            - type: "field_regex"
+              field: "matched_text"
+              operator: "regex"
+              value: "\\d{3,4}"
+    metadata:
+      severity: "critical"
+      tags:
+        - "filesystem"
+        - "storage"
+        - "quota"
+      alert_threshold: 1
+      escalation_delay_minutes: 15
+
+  # Example 4: Memory Allocation Check (railway continuation)
+  # Demonstrates: callable pattern, local paths, custom condition
+  memory_allocation_check:
+    id: "memory_allocation_check"
+    pattern:
+      type: "callable"
+      pattern: "custom_checks.memory:check_allocation_pattern"
+    files:
+      - "/var/log/slurm/slurm_job_*.log"
+      - "file:///var/log/system/messages"
+    meaning: "Checking if memory allocation parameters are correct"
+    context_lines: 15
+    suggestion: "Review job script memory parameters and system limits"
+    next_errors:
+      - error_id: "suggest_memory_increase"
+        when:
+          type: "custom"
+          callable: "custom_checks.memory:should_increase_memory"
+    metadata:
+      severity: "low"
+      tags:
+        - "diagnostic"
+        - "memory"
+        - "analysis"
+      automated_check: true
+
+  # Example 5: Network Connectivity Check (railway continuation)
+  # Demonstrates: regex with multiple flags, FTP URIs
+  network_connectivity_check:
+    id: "network_connectivity_check"
+    pattern:
+      type: "regex"
+      pattern: "^.*network\\s+(unreachable|down|error).*$"
+      flags:
+        - "IGNORECASE"
+        - "MULTILINE"
+    files:
+      - "ftp://ftpuser:ftppass@ftp.example.com/logs/network/*.log"
+    meaning: "Network connectivity issues detected"
+    context_lines: 5
+    suggestion: "Verify network infrastructure, DNS resolution, and routing tables"
+    next_errors: []
+    metadata:
+      severity: "high"
+      tags:
+        - "network"
+        - "infrastructure"
+      oncall_required: true
+
+  # Example 6: Disk Cleanup Required (railway continuation)
+  # Demonstrates: literal pattern, glob patterns
+  disk_cleanup_required:
+    id: "disk_cleanup_required"
+    pattern:
+      type: "literal"
+      pattern: "CLEANUP REQUIRED"
+    files:
+      - "/var/log/maintenance/**/*.log"
+      - "/var/log/cleanup/*.log"
+    meaning: "Automated disk cleanup is required"
+    context_lines: 3
+    suggestion: "Run cleanup scripts or manually remove old files"
+    next_errors: []
+    metadata:
+      severity: "medium"
+      tags:
+        - "maintenance"
+        - "cleanup"
+        - "automation"
+      automated_action: "trigger_cleanup_job"
+
+  # Example 7: Suggest Memory Increase (railway continuation)
+  # Demonstrates: literal pattern, nested conditions with field checks
+  suggest_memory_increase:
+    id: "suggest_memory_increase"
+    pattern:
+      type: "literal"
+      pattern: "MEMORY_RECOMMENDATION"
+    files:
+      - "/var/log/recommendations/*.log"
+    meaning: "System recommends increasing memory allocation"
+    context_lines: 20
+    suggestion: "Based on historical usage, increase memory by 50% or more"
+    next_errors:
+      - error_id: "create_ticket"
+        when:
+          type: "and"
+          conditions:
+            - type: "field_equals"
+              field: "auto_escalate"
+              operator: "=="
+              value: true
+            - type: "or"
+              conditions:
+                - type: "field_contains"
+                  field: "user_group"
+                  operator: "contains"
+                  value: "research"
+                - type: "field_contains"
+                  field: "user_group"
+                  operator: "contains"
+                  value: "production"
+    metadata:
+      severity: "low"
+      tags:
+        - "recommendation"
+        - "optimization"
+        - "resource-planning"
+      action_type: "advisory"
+
+  # Example 8: Create Ticket (railway end)
+  # Demonstrates: callable pattern with custom logic
+  create_ticket:
+    id: "create_ticket"
+    pattern:
+      type: "callable"
+      pattern: "ticketing.integration:should_create_ticket"
+    files:
+      - "s3://tickets/auto-created/**/*.json"
+    meaning: "Automated ticket creation triggered"
+    context_lines: 0
+    suggestion: "Ticket will be created automatically in issue tracking system"
+    next_errors: []
+    metadata:
+      severity: "info"
+      tags:
+        - "automation"
+        - "ticketing"
+        - "integration"
+      webhook_url: "https://api.example.com/tickets/create"
+      notification_channels:
+        - "slack"
+        - "email"
+
+  # Example 9: Python Error with Railway Pattern
+  # Demonstrates: Custom condition callables, complex chaining
+  python_traceback:
+    id: "python_traceback"
+    pattern:
+      type: "regex"
+      pattern: "Traceback \\(most recent call last\\):"
+    files:
+      - "/var/log/jobs/**/*.err"
+      - "s3://compute-logs/python/**/*.log"
+    meaning: "Python exception occurred"
+    context_lines: 15
+    suggestion: "Review Python stack trace and fix the error"
+    next_errors:
+      - error_id: "python_memory_error"
+        when:
+          type: "custom"
+          callable: "examples.custom_conditions:has_high_memory_usage"
+      - error_id: "python_loop_error"
+        when:
+          type: "custom"
+          callable: "examples.custom_conditions:is_in_loop_context"
+      - error_id: "python_concurrent_error"
+        when:
+          type: "custom"
+          callable: "examples.custom_conditions:is_concurrent_error"
+    metadata:
+      severity: "medium"
+      tags:
+        - "python"
+        - "exception"
+        - "stacktrace"
+
+  # Example 10: Python Memory Error
+  # Demonstrates: Nested AND/OR with custom conditions
+  python_memory_error:
+    id: "python_memory_error"
+    pattern:
+      type: "regex"
+      pattern: "(MemoryError|numpy.*memory)"
+      flags:
+        - "IGNORECASE"
+    files:
+      - "/var/log/jobs/**/*.err"
+    meaning: "Python script ran out of memory"
+    context_lines: 20
+    suggestion: "Optimize memory usage or request more memory for the job"
+    next_errors:
+      - error_id: "escalate_to_ops"
+        when:
+          type: "and"
+          conditions:
+            - type: "custom"
+              callable: "examples.custom_conditions:is_critical_severity"
+            - type: "or"
+              conditions:
+                - type: "custom"
+                  callable: "examples.custom_conditions:occurred_on_weekend"
+                - type: "custom"
+                  callable: "examples.custom_conditions:occurred_at_night"
+    metadata:
+      severity: "critical"
+      tags:
+        - "python"
+        - "memory"
+        - "oom"
+
+  # Example 11: Python Loop Error
+  # Demonstrates: Field access with metadata
+  python_loop_error:
+    id: "python_loop_error"
+    pattern:
+      type: "regex"
+      pattern: "(infinite loop|maximum recursion)"
+      flags:
+        - "IGNORECASE"
+    files:
+      - "/var/log/jobs/**/*.err"
+    meaning: "Python script stuck in infinite loop or deep recursion"
+    context_lines: 10
+    suggestion: "Fix loop termination condition or reduce recursion depth"
+    next_errors:
+      - error_id: "check_repeated_failures"
+        when:
+          type: "custom"
+          callable: "examples.custom_conditions:is_repeated_error"
+    metadata:
+      severity: "high"
+      tags:
+        - "python"
+        - "loop"
+        - "recursion"
+
+  # Example 12: Python Concurrent Error
+  # Demonstrates: Complex field access patterns
+  python_concurrent_error:
+    id: "python_concurrent_error"
+    pattern:
+      type: "regex"
+      pattern: "(deadlock|race condition|thread.*error)"
+      flags:
+        - "IGNORECASE"
+    files:
+      - "/var/log/jobs/**/*.err"
+    meaning: "Python concurrency issue detected"
+    context_lines: 25
+    suggestion: "Review threading/multiprocessing code and synchronization"
+    next_errors:
+      - error_id: "escalate_to_ops"
+        when:
+          type: "and"
+          conditions:
+            - type: "field_equals"
+              field: "metadata.hostname"
+              value: "compute-node-01"
+            - type: "custom"
+              callable: "examples.custom_conditions:is_on_compute_node"
+    metadata:
+      severity: "high"
+      tags:
+        - "python"
+        - "concurrency"
+        - "threading"
+
+  # Example 13: Escalate to Ops
+  # Demonstrates: End of railway chain with notification
+  escalate_to_ops:
+    id: "escalate_to_ops"
+    pattern:
+      type: "literal"
+      pattern: "ESCALATE"
+    files:
+      - "/var/log/escalations/*.log"
+    meaning: "Error requires operations team intervention"
+    context_lines: 5
+    suggestion: "Contact on-call engineer immediately"
+    next_errors: []
+    metadata:
+      severity: "critical"
+      tags:
+        - "escalation"
+        - "ops"
+        - "urgent"
+      pager_duty: true
+      notification_channels:
+        - "pagerduty"
+        - "phone"
+        - "email"
+
+  # Example 14: Check Repeated Failures
+  # Demonstrates: Array indexing in field access
+  check_repeated_failures:
+    id: "check_repeated_failures"
+    pattern:
+      type: "regex"
+      pattern: "^(ERROR|CRITICAL|FATAL):"
+    files:
+      - "/var/log/jobs/**/*.log"
+    meaning: "Checking for pattern of repeated failures"
+    context_lines: 30
+    suggestion: "Investigate root cause of repeated failures"
+    next_errors:
+      - error_id: "create_incident_report"
+        when:
+          type: "and"
+          conditions:
+            - type: "field_contains"
+              field: "context_before[0]"
+              value: "ERROR"
+            - type: "field_contains"
+              field: "context_after[-1]"
+              value: "CRITICAL"
+    metadata:
+      severity: "high"
+      tags:
+        - "analysis"
+        - "patterns"
+        - "diagnostics"
+
+  # Example 15: Create Incident Report
+  # Demonstrates: Multiple condition types in one railway
+  create_incident_report:
+    id: "create_incident_report"
+    pattern:
+      type: "literal"
+      pattern: "INCIDENT_DETECTED"
+    files:
+      - "/var/log/incidents/*.log"
+    meaning: "Automated incident report created"
+    context_lines: 0
+    suggestion: "Review incident report and take corrective action"
+    next_errors: []
+    metadata:
+      severity: "critical"
+      tags:
+        - "incident"
+        - "automation"
+        - "reporting"
+      auto_generate_report: true
+      report_template: "incident_summary.jinja2"
