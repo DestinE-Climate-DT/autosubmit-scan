@@ -40,13 +40,18 @@ def validate_uri(uri: str) -> str:
 
     Supports:
     - s3://bucket/path
-    - ssh://user@host:port/path
-    - sftp://user:pass@host/path
+    - ssh://host:/path (rsync-style, recommended)
+    - ssh://user@host:port/path (standard)
+    - sftp://host:/path (rsync-style, recommended)
+    - sftp://user:pass@host/path (standard)
     - ftp://user:pass@host/path
     - file:///absolute/path
     - /absolute/path
 
     Allows glob patterns (* and **) in paths.
+
+    Note: Rsync-style SSH/SFTP URIs (with colon before path) automatically
+    resolve host aliases and credentials from ~/.ssh/config.
 
     Args:
         uri: URI string to validate
@@ -68,16 +73,24 @@ def validate_uri(uri: str) -> str:
         raise ValueError(f"Invalid S3 URI: {uri}")
 
     # SSH URIs: ssh://user@host:port/path or ssh://user@host/path
+    # Also supports rsync-style: ssh://host:/path (with colon before slash)
     if uri.startswith("ssh://"):
-        pattern = r"^ssh://[^@]+@[^:/]+(?::\d+)?/.+"
-        if re.match(pattern, uri):
+        # Rsync-style: ssh://host:/path or ssh://user@host:/path
+        rsync_pattern = r"^ssh://(?:[^@]+@)?[^:/]+:/.+"
+        # Standard: ssh://user@host/path or ssh://user@host:port/path
+        standard_pattern = r"^ssh://[^@]+@[^:/]+(?::\d+)?/.+"
+        if re.match(rsync_pattern, uri) or re.match(standard_pattern, uri):
             return uri
         raise ValueError(f"Invalid SSH URI: {uri}")
 
     # SFTP URIs: sftp://user:pass@host/path or sftp://user@host/path
+    # Also supports rsync-style: sftp://host:/path (with colon before slash)
     if uri.startswith("sftp://"):
-        pattern = r"^sftp://[^@]+@[^/]+/.+"
-        if re.match(pattern, uri):
+        # Rsync-style: sftp://host:/path or sftp://user@host:/path
+        rsync_pattern = r"^sftp://(?:[^@]+@)?[^:/]+:/.+"
+        # Standard: sftp://user@host/path
+        standard_pattern = r"^sftp://[^@]+@[^/]+/.+"
+        if re.match(rsync_pattern, uri) or re.match(standard_pattern, uri):
             return uri
         raise ValueError(f"Invalid SFTP URI: {uri}")
 
