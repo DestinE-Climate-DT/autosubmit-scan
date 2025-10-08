@@ -1,0 +1,53 @@
+/* CSS for Textual TUI */
+
+Screen {
+    background: $surface;
+}
+
+Header {
+    dock: top;
+    height: 3;
+    background: $primary;
+    color: $text;
+    content-align: center middle;
+}
+
+Footer {
+    dock: bottom;
+    height: 1;
+    background: $primary-darken-2;
+    color: $text;
+}
+
+Horizontal {
+    height: 1fr;
+}
+
+Tree {
+    width: 50%;
+    border-right: solid $primary;
+    padding: 1;
+    background: $surface;
+}
+
+#detail-panel {
+    width: 50%;
+    padding: 1;
+    background: $surface;
+}
+
+#detail {
+    width: 100%;
+    height: 100%;
+    padding: 1;
+    color: $text;
+}
+
+Tree > .tree--label {
+    color: $text;
+}
+
+Tree > .tree--cursor {
+    background: $primary;
+    color: $text;
+}

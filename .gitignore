@@ -205,3 +205,32 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+# pixi environments
+.pixi/*
+!.pixi/config.toml
+
+# Test artifacts
+test-results/
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+*.cover
+.hypothesis/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+.temp/
+temp/

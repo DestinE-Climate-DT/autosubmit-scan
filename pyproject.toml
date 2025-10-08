@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "autosubmit-scan"
+version = "0.1.0"
+description = "Autosubmit workflow scanning and catalog management"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+    {name = "Paul Gierz", email = "paul.gierz@awi.de", orcid = "0000-0002-4512-087X"}
+]
+
+[project.scripts]
+autosubmit-scan = "src.cli.main:main"
+
+[tool.ruff]
+line-length = 130
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+]
+ignore = []
+
+[tool.ruff.format]
+line-ending = "auto"
+indent-style = "space"
+quote-style = "double"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]

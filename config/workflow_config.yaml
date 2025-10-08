@@ -1,0 +1,78 @@
+# Snakemake Workflow Configuration
+# Configuration for error scanning workflow orchestration
+
+# Error catalog path
+catalog_path: "examples/sample_catalog.yaml"
+
+# Output directories
+# All paths are relative to the workflow directory
+output_dirs:
+  manifests: "workflow_output/manifests"      # File discovery manifests
+  fingerprints: "workflow_output/fingerprints"  # File fingerprints (cache)
+  matches: "workflow_output/matches"           # Pattern match locations
+  filtered: "workflow_output/filtered"         # Filtered file lists (funneling)
+  results: "workflow_output/results"           # Full matches with context
+  aggregated: "workflow_output/aggregated"     # Final aggregated results
+
+# Snakemake execution parameters
+snakemake:
+  cores: 4                    # Number of parallel cores
+  use_conda: false            # Use conda environments
+  keep_going: true            # Continue on non-critical failures
+  rerun_incomplete: true      # Rerun incomplete jobs
+  printshellcmds: true        # Print shell commands for debugging
+
+# Resource limits
+resources:
+  max_concurrent_downloads: 10  # Max parallel remote file downloads
+  download_timeout: 300         # Timeout for remote file access (seconds)
+  memory_limit_mb: 8192         # Memory limit per job (MB)
+
+# Remote file access credentials
+# These can be overridden with environment variables
+remote_access:
+  # S3 configuration
+  s3:
+    # Use AWS credentials from environment or ~/.aws/credentials
+    # AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN
+    use_env_credentials: true
+    region: "us-east-1"
+
+  # SSH/SFTP configuration
+  ssh:
+    # Use SSH agent or ~/.ssh/config for key-based authentication
+    use_agent: true
+    default_port: 22
+    # Optional: specify private key path
+    # private_key: "~/.ssh/id_rsa"
+
+  # FTP configuration
+  ftp:
+    # Credentials can be embedded in URIs or provided via environment
+    use_netrc: true  # Use ~/.netrc for credentials
+    passive_mode: true
+
+# Caching and fingerprinting
+caching:
+  enable_fingerprinting: true    # Enable file fingerprinting for caching
+  fingerprint_checksum: true     # Compute checksums (MD5 for local, ETag for S3)
+  cache_ttl_hours: 24           # Fingerprint cache TTL
+
+# Logging
+logging:
+  level: "INFO"                  # DEBUG, INFO, WARNING, ERROR
+  log_file: "workflow_output/snakemake.log"
+  timestamp_format: "%Y-%m-%d %H:%M:%S"
+
+# Error handling
+error_handling:
+  max_retries: 3                 # Max retries for failed jobs
+  retry_delay_seconds: 60        # Delay between retries
+  fail_on_missing_files: false   # Whether to fail if files not found
+  fail_on_no_matches: false      # Whether to fail if no patterns match
+
+# Output formats
+output:
+  json_indent: 2                 # JSON formatting indentation
+  include_metadata: true         # Include error definition metadata in results
+  timestamp_matches: true        # Add timestamps to matches
