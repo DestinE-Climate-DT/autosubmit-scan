@@ -1,0 +1,226 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://destine.example/error-scan/schema/error_catalog.schema.json",
+  "title": "Error Catalog Schema",
+  "description": "Schema for error catalog definitions used in remote monitoring systems",
+  "type": "object",
+  "required": ["version", "schema_version", "metadata", "errors"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Catalog content version (semantic versioning)",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$"
+    },
+    "schema_version": {
+      "type": "string",
+      "description": "Catalog format version (semantic versioning)",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$"
+    },
+    "metadata": {
+      "$ref": "#/definitions/CatalogMetadata"
+    },
+    "errors": {
+      "type": "object",
+      "description": "Error definitions mapped by ID",
+      "additionalProperties": {
+        "$ref": "#/definitions/ErrorDefinition"
+      }
+    }
+  },
+  "definitions": {
+    "CatalogMetadata": {
+      "type": "object",
+      "description": "Metadata about the error catalog",
+      "required": ["name", "description", "author", "created", "updated"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Catalog name"
+        },
+        "description": {
+          "type": "string",
+          "description": "Catalog description"
+        },
+        "author": {
+          "type": "string",
+          "description": "Catalog author"
+        },
+        "created": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp (ISO 8601)"
+        },
+        "updated": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update timestamp (ISO 8601)"
+        }
+      }
+    },
+    "ErrorDefinition": {
+      "type": "object",
+      "description": "Definition of an error to detect",
+      "required": ["id", "pattern", "files", "meaning", "context_lines", "suggestion"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique error identifier"
+        },
+        "pattern": {
+          "$ref": "#/definitions/PatternMatcher"
+        },
+        "files": {
+          "type": "array",
+          "description": "File URIs or patterns (fsspec compatible)",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "meaning": {
+          "type": "string",
+          "description": "Human-readable error description"
+        },
+        "context_lines": {
+          "type": "integer",
+          "description": "Number of context lines to capture",
+          "minimum": 0
+        },
+        "suggestion": {
+          "type": "string",
+          "description": "Suggested action to resolve the error"
+        },
+        "next_errors": {
+          "type": "array",
+          "description": "Railway pattern - next errors to check",
+          "items": {
+            "$ref": "#/definitions/ErrorCondition"
+          },
+          "default": []
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Additional metadata (tags, severity, etc.)",
+          "additionalProperties": true
+        }
+      }
+    },
+    "PatternMatcher": {
+      "type": "object",
+      "description": "Pattern matching configuration",
+      "required": ["type", "pattern"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["literal", "regex", "callable"],
+          "description": "Type of pattern matcher"
+        },
+        "pattern": {
+          "type": "string",
+          "description": "Pattern string or callable reference (module:function)"
+        },
+        "flags": {
+          "type": "array",
+          "description": "Regex flags (IGNORECASE, MULTILINE, etc.)",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "ErrorCondition": {
+      "type": "object",
+      "description": "Condition for triggering next error check",
+      "required": ["error_id", "when"],
+      "properties": {
+        "error_id": {
+          "type": "string",
+          "description": "ID of the next error to check"
+        },
+        "when": {
+          "$ref": "#/definitions/ConditionSpec"
+        }
+      }
+    },
+    "ConditionSpec": {
+      "type": "object",
+      "description": "Condition specification with nested logic",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "always",
+            "and",
+            "or",
+            "custom",
+            "field_equals",
+            "field_contains",
+            "field_regex"
+          ],
+          "description": "Type of condition"
+        },
+        "conditions": {
+          "type": "array",
+          "description": "Nested conditions for AND/OR operations",
+          "items": {
+            "$ref": "#/definitions/ConditionSpec"
+          }
+        },
+        "callable": {
+          "type": "string",
+          "description": "Callable reference for CUSTOM (module:function)"
+        },
+        "field": {
+          "type": "string",
+          "description": "Field name for FIELD_* operations"
+        },
+        "operator": {
+          "type": "string",
+          "description": "Operator for FIELD_* operations"
+        },
+        "value": {
+          "description": "Value for FIELD_* operations"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "enum": ["and", "or"]
+              }
+            }
+          },
+          "then": {
+            "required": ["conditions"]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "custom"
+              }
+            }
+          },
+          "then": {
+            "required": ["callable"]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "enum": ["field_equals", "field_contains", "field_regex"]
+              }
+            }
+          },
+          "then": {
+            "required": ["field", "value"]
+          }
+        }
+      ]
+    }
+  }
+}
