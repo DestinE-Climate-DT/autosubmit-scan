@@ -1,0 +1,185 @@
+name: Test Suite
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      # MinIO for S3-compatible storage
+      minio:
+        image: minio/minio:latest
+        ports:
+          - 9000:9000
+          - 9001:9001
+        env:
+          MINIO_ROOT_USER: minioadmin
+          MINIO_ROOT_PASSWORD: minioadmin
+        options: >-
+          --health-cmd "curl -f http://localhost:9000/minio/health/live || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        volumes:
+          - minio-data:/data
+        # Command to start MinIO server
+        credentials:
+          username: minioadmin
+          password: minioadmin
+
+      # SFTP server using atmoz/sftp
+      sftp:
+        image: atmoz/sftp:latest
+        ports:
+          - 2222:22
+        env:
+          SFTP_USERS: testuser:testpass:1001
+        options: >-
+          --health-cmd "ps aux | grep sshd | grep -v grep || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      # FTP server using delfer/alpine-ftp-server
+      ftp:
+        image: delfer/alpine-ftp-server:latest
+        ports:
+          - 2121:21
+          - 21000-21010:21000-21010
+        env:
+          USERS: testuser|testpass
+          ADDRESS: localhost
+        options: >-
+          --health-cmd "netstat -an | grep 21 || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Pixi
+        uses: prefix-dev/setup-pixi@v0.8.1
+        with:
+          pixi-version: latest
+          cache: true
+
+      - name: Verify service health
+        run: |
+          echo "Checking MinIO..."
+          curl -f http://localhost:9000/minio/health/live || (echo "MinIO not healthy" && exit 1)
+
+          echo "Checking SFTP..."
+          nc -zv localhost 2222 || (echo "SFTP not accessible" && exit 1)
+
+          echo "Checking FTP..."
+          nc -zv localhost 2121 || (echo "FTP not accessible" && exit 1)
+
+          echo "All services are healthy!"
+
+      - name: Setup MinIO buckets and test data
+        run: |
+          pixi run ci-setup-minio
+        env:
+          MINIO_ENDPOINT: localhost:9000
+          MINIO_ACCESS_KEY: minioadmin
+          MINIO_SECRET_KEY: minioadmin
+          MINIO_SECURE: "false"
+
+      - name: Setup SFTP test data
+        run: |
+          pixi run ci-setup-sftp
+        env:
+          SFTP_HOST: localhost
+          SFTP_PORT: 2222
+          SFTP_USER: testuser
+          SFTP_PASSWORD: testpass
+
+      - name: Setup FTP test data
+        run: |
+          pixi run ci-setup-ftp
+        env:
+          FTP_HOST: localhost
+          FTP_PORT: 2121
+          FTP_USER: testuser
+          FTP_PASSWORD: testpass
+
+      - name: Run unit tests
+        run: |
+          pixi run test-unit
+
+      - name: Run integration tests
+        run: |
+          pixi run test-integration
+        env:
+          CI: true
+          MINIO_ENDPOINT: localhost:9000
+          MINIO_ACCESS_KEY: minioadmin
+          MINIO_SECRET_KEY: minioadmin
+          MINIO_SECURE: "false"
+          SFTP_HOST: localhost
+          SFTP_PORT: 2222
+          SFTP_USER: testuser
+          SFTP_PASSWORD: testpass
+          FTP_HOST: localhost
+          FTP_PORT: 2121
+          FTP_USER: testuser
+          FTP_PASSWORD: testpass
+
+      - name: Run e2e tests
+        run: |
+          pixi run test-e2e
+        env:
+          CI: true
+          MINIO_ENDPOINT: localhost:9000
+          MINIO_ACCESS_KEY: minioadmin
+          MINIO_SECRET_KEY: minioadmin
+          MINIO_SECURE: "false"
+          SFTP_HOST: localhost
+          SFTP_PORT: 2222
+          SFTP_USER: testuser
+          SFTP_PASSWORD: testpass
+          FTP_HOST: localhost
+          FTP_PORT: 2121
+          FTP_USER: testuser
+          FTP_PASSWORD: testpass
+
+      - name: Generate coverage report
+        run: |
+          pixi run coverage-report
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: |
+            coverage.xml
+            htmlcov/
+          retention-days: 30
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            test-results/
+            .pytest_cache/
+          retention-days: 30

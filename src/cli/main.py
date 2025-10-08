@@ -19,7 +19,7 @@ logger.add(
 
 
 @click.group()
-@click.version_option(version="0.1.0", prog_name="autosubmit-scan")
+@click.version_option(version="0.1.0", prog_name="as-scan")
 @click.option(
     "-v", "--verbose",
     is_flag=True,
@@ -39,19 +39,19 @@ def cli(verbose, quiet):
     \b
     Common workflows:
       1. Initialize a new catalog:
-         $ autosubmit-scan init --output my_catalog.yaml
+         $ as-scan init --output my_catalog.yaml
 
       2. Validate your catalog:
-         $ autosubmit-scan validate my_catalog.yaml
+         $ as-scan validate my_catalog.yaml
 
       3. Run a scan:
-         $ autosubmit-scan scan --catalog my_catalog.yaml --output ./results
+         $ as-scan scan --catalog my_catalog.yaml --output ./results
 
       4. View results interactively:
-         $ autosubmit-scan view ./results/report.json
+         $ as-scan view ./results/report.json
 
       5. Export to markdown:
-         $ autosubmit-scan export ./results/report.json --template markdown --output report.md
+         $ as-scan export ./results/report.json --template markdown --output report.md
     """
     # Configure logging level
     if verbose:

@@ -13,7 +13,7 @@ authors = [
 ]
 
 [project.scripts]
-autosubmit-scan = "src.cli.main:main"
+as-scan = "src.cli.main:main"
 
 [tool.ruff]
 line-length = 130

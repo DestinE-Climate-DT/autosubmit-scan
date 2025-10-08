@@ -28,14 +28,14 @@ cd autosubmit-scan
 pixi install
 
 # Run commands via pixi
-pixi run autosubmit-scan --help
+pixi run as-scan --help
 ```
 
 ### Using pip
 
 ```bash
 pip install -e .
-autosubmit-scan --help
+as-scan --help
 ```
 
 ## Quick Start
@@ -43,7 +43,7 @@ autosubmit-scan --help
 ### 1. Create a Sample Catalog
 
 ```bash
-autosubmit-scan init --output my_catalog.yaml
+as-scan init --output my_catalog.yaml
 ```
 
 This creates a sample catalog with example error definitions.
@@ -51,7 +51,7 @@ This creates a sample catalog with example error definitions.
 ### 2. Validate Your Catalog
 
 ```bash
-autosubmit-scan validate my_catalog.yaml
+as-scan validate my_catalog.yaml
 ```
 
 Ensures your catalog is syntactically correct and follows the schema.
@@ -59,7 +59,7 @@ Ensures your catalog is syntactically correct and follows the schema.
 ### 3. Run a Scan
 
 ```bash
-autosubmit-scan scan --catalog my_catalog.yaml --output ./results --cores 4
+as-scan scan --catalog my_catalog.yaml --output ./results --cores 4
 ```
 
 This will:
@@ -71,7 +71,7 @@ This will:
 ### 4. View Results Interactively
 
 ```bash
-autosubmit-scan view ./results/report.json
+as-scan view ./results/report.json
 ```
 
 Launches a TUI for browsing errors by type and file.
@@ -79,7 +79,7 @@ Launches a TUI for browsing errors by type and file.
 ### 5. Export to Markdown
 
 ```bash
-autosubmit-scan export ./results/report.json --template markdown --output report.md
+as-scan export ./results/report.json --template markdown --output report.md
 ```
 
 ## Command Reference
@@ -87,7 +87,7 @@ autosubmit-scan export ./results/report.json --template markdown --output report
 ### `scan` - Run error scanning workflow
 
 ```bash
-autosubmit-scan scan --catalog CATALOG --output OUTPUT [OPTIONS]
+as-scan scan --catalog CATALOG --output OUTPUT [OPTIONS]
 
 Options:
   --catalog PATH    Error catalog YAML file [required]
@@ -100,7 +100,7 @@ Options:
 ### `view` - Launch interactive TUI
 
 ```bash
-autosubmit-scan view REPORT_PATH
+as-scan view REPORT_PATH
 
 Arguments:
   REPORT_PATH       Path to JSON-LD report file
@@ -109,7 +109,7 @@ Arguments:
 ### `export` - Export report with template
 
 ```bash
-autosubmit-scan export REPORT_PATH [OPTIONS]
+as-scan export REPORT_PATH [OPTIONS]
 
 Arguments:
   REPORT_PATH       Path to JSON-LD report file
@@ -122,7 +122,7 @@ Options:
 ### `validate` - Validate error catalog
 
 ```bash
-autosubmit-scan validate CATALOG_PATH [OPTIONS]
+as-scan validate CATALOG_PATH [OPTIONS]
 
 Arguments:
   CATALOG_PATH      Path to catalog YAML file
@@ -134,7 +134,7 @@ Options:
 ### `init` - Create sample catalog
 
 ```bash
-autosubmit-scan init [OPTIONS]
+as-scan init [OPTIONS]
 
 Options:
   --output PATH     Output path [default: ./error_catalog.yaml]
@@ -296,17 +296,17 @@ errors:
 EOF
 
 # Scan
-autosubmit-scan scan --catalog local_errors.yaml --output ./results
+as-scan scan --catalog local_errors.yaml --output ./results
 
 # View
-autosubmit-scan view ./results/report.json
+as-scan view ./results/report.json
 ```
 
 ### S3 Bucket Scanning
 
 ```bash
 # Scan S3 logs (requires AWS credentials)
-autosubmit-scan scan \
+as-scan scan \
   --catalog s3_catalog.yaml \
   --output ./s3_results \
   --cores 8
