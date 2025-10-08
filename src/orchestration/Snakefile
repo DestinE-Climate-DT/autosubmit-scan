@@ -259,6 +259,8 @@ rule extract_context:
 
 rule aggregate_results:
     input:
+        # Must depend on filtered manifest from filter_matches checkpoint
+        filtered=f"{FILTERED_DIR}/{{error_id}}_files_with_matches.txt",
         # Get all result files for this error
         results=lambda wildcards: expand(
             f"{RESULTS_DIR}/{{error_id}}/{{file_hash}}_matches.json",
