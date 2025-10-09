@@ -1,0 +1,25 @@
+# Author information for as-scan project
+# This file is used to auto-generate author badges in README.md
+#
+# Format:
+#   - name: Full name
+#     email: Email address (shown publicly, used for contact)
+#     gravatar_email: (optional) Different email for Gravatar lookup if needed
+#     affiliation: Institution/Organization
+#     orcid: ORCID identifier (without https://orcid.org/ prefix)
+#     role: Role/contribution description
+
+authors:
+  - name: Paul Gierz
+    email: paul.gierz@awi.de
+    gravatar_email: pgierz@awi.de  # Use this email for Gravatar lookup
+    affiliation: Alfred Wegener Institute (AWI)
+    orcid: 0000-0002-4512-087X
+    role: Lead Developer, Architecture
+
+  # Add additional authors below
+  # - name: Jane Doe
+  #   email: jane.doe@example.org
+  #   affiliation: Example Institution
+  #   orcid: 0000-0000-0000-0000
+  #   role: Contributor, Testing

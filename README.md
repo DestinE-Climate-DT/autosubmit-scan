@@ -419,7 +419,7 @@ The `as-scan` software is proudly funded by the European Union 🇪🇺 and deve
 <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; margin: 20px 0;">
 <div align="center" style="display: inline-block; margin: 10px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; width: 200px;">
     <a href="mailto:paul.gierz@awi.de">
-        <img src="https://secure.gravatar.com/avatar/97bab412e28ac06da974a15ed758b87b?s=100&d=identicon" alt="Paul Gierz" style="border-radius: 50%; width: 80px; height: 80px;">
+        <img src="https://secure.gravatar.com/avatar/709ea66dc102e6bc4547032f85ff6c95?s=100&d=identicon" alt="Paul Gierz" style="border-radius: 50%; width: 80px; height: 80px;">
     </a>
     <h4 style="margin: 10px 0 5px 0;">Paul Gierz</h4>
     <p style="margin: 5px 0; font-size: 0.9em; color: #666;">Alfred Wegener Institute (AWI)</p>

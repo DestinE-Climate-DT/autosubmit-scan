@@ -11,15 +11,26 @@ from pathlib import Path
 from typing import List, Dict
 
 
-def get_gravatar_url(email: str, size: int = 100) -> str:
-    """Generate Gravatar URL from email address."""
-    email_hash = hashlib.md5(email.lower().encode('utf-8')).hexdigest()
+def get_gravatar_url(email: str, size: int = 100, gravatar_email: str = None) -> str:
+    """Generate Gravatar URL from email address.
+
+    Args:
+        email: Display email address
+        size: Avatar size in pixels
+        gravatar_email: Optional different email to use for Gravatar lookup
+                       (useful when display email differs from Gravatar registered email)
+    """
+    lookup_email = gravatar_email if gravatar_email else email
+    email_hash = hashlib.md5(lookup_email.lower().encode('utf-8')).hexdigest()
     return f"https://secure.gravatar.com/avatar/{email_hash}?s={size}&d=identicon"
 
 
 def generate_author_card_html(author: Dict[str, str]) -> str:
     """Generate HTML for a single author card."""
-    gravatar_url = get_gravatar_url(author['email'])
+    gravatar_url = get_gravatar_url(
+        author['email'],
+        gravatar_email=author.get('gravatar_email')
+    )
     orcid_badge = ""
 
     if author.get('orcid'):
