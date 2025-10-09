@@ -12,7 +12,7 @@ A comprehensive remote error monitoring and scanning system for analyzing log fi
 ## Bonus Features (WIP and not critical)
 
 - **Interactive TUI**: Browse results with a terminal user interface (Textual)
-- **Report Generation**: Export to Markdown, HTML, or plain text
+- **Report Generation**: Export to Markdown, HTML, or plain text via Jinja2 Templates
 - **JSON-LD Format**: Structured, semantic error reports
 
 ## Installation
