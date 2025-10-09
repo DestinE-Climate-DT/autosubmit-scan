@@ -14,6 +14,9 @@ test-e2e = "pytest -m e2e --remote"
 test-fast = "pytest -m 'not slow'"
 coverage-report = "pytest --cov --cov-report=term-missing --cov-report=html --cov-report=xml"
 
+# Documentation tasks
+generate-authors = "python scripts/generate_author_badges.py"
+
 # CI setup tasks
 ci-setup-minio = "python scripts/ci/setup_minio.py"
 ci-setup-sftp = "python scripts/ci/setup_sftp.py"

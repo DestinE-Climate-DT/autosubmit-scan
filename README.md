@@ -1,6 +1,59 @@
-# `as-scan`: The Autosubmit Error Scanner 
+# `as-scan`: The Autosubmit Error Scanner
+
+<p align="center">
+  <img src="assets/title-svg.svg" alt="DestinE Earth" width="400"/>
+</p>
 
 A comprehensive remote error monitoring and scanning system for analyzing log files across distributed systems. Built with pattern matching, workflow orchestration (Snakemake), and the Railway pattern for conditional error chaining.
+
+---
+
+## 🎬 Quick Demo
+
+> **Coming Soon**: Interactive demos showcasing real-world error scanning workflows
+
+### Featured Use Cases
+
+<details>
+<summary><b>📊 Scanning Remote HPC Cluster Logs via SSH</b></summary>
+
+```bash
+# Full-featured demo coming soon
+# - Create error catalog for SLURM job failures
+# - Scan remote logs with SSH aliases from ~/.ssh/config
+# - Track out-of-memory errors, time limits, and node failures
+# - Generate comprehensive reports with context
+```
+
+</details>
+
+<details>
+<summary><b>🔗 Railway Pattern: Chaining Related Errors</b></summary>
+
+```bash
+# Full-featured demo coming soon
+# - Define conditional error chains
+# - Automatically detect cascading failures
+# - Track error propagation through logs
+# - Generate causal dependency graphs
+```
+
+</details>
+
+<details>
+<summary><b>🌐 Multi-Cloud Log Aggregation</b></summary>
+
+```bash
+# Full-featured demo coming soon
+# - Scan logs from S3, SSH, SFTP, and local sources
+# - Parallel processing across distributed systems
+# - Unified error reporting
+# - Integration with monitoring dashboards
+```
+
+</details>
+
+---
 
 ## Features
 
@@ -350,10 +403,66 @@ Contributions welcome! Please:
 
 See [LICENSE](LICENSE) for details.
 
-## Authors
+---
 
-- Paul Gierz <pgierz@awi.de> (ORCID: 0000-0002-4512-087X)
+## Funding & Attribution
+
+<p align="center">
+  <img src="assets/DestinE_logo_line_2_POS.png" alt="DestinE - Funded by the European Union" width="600"/>
+</p>
+
+The `as-scan` software is proudly funded by the European Union 🇪🇺 and developed by:
+
+<!-- AUTO-GENERATED: Run `python scripts/generate_author_badges.py` to update -->
+<!-- Edit AUTHORS.yaml to add/modify authors -->
+
+<div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; margin: 20px 0;">
+<div align="center" style="display: inline-block; margin: 10px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; width: 200px;">
+    <a href="mailto:paul.gierz@awi.de">
+        <img src="https://secure.gravatar.com/avatar/97bab412e28ac06da974a15ed758b87b?s=100&d=identicon" alt="Paul Gierz" style="border-radius: 50%; width: 80px; height: 80px;">
+    </a>
+    <h4 style="margin: 10px 0 5px 0;">Paul Gierz</h4>
+    <p style="margin: 5px 0; font-size: 0.9em; color: #666;">Alfred Wegener Institute (AWI)</p>
+    <p style="margin: 5px 0;">
+        <a href="https://orcid.org/0000-0002-4512-087X" target="_blank"><img src="https://orcid.org/assets/vectors/orcid.logo.icon.svg" width="16" height="16" alt="ORCID"></a>
+        <a href="mailto:paul.gierz@awi.de" style="font-size: 0.8em;">📧</a>
+    </p>
+    <p style="margin: 5px 0; font-size: 0.85em; font-style: italic;">Lead Developer, Architecture</p>
+</div>
+</div>
+
+> **Adding authors**: Edit [`AUTHORS.yaml`](AUTHORS.yaml) and run `python scripts/generate_author_badges.py` to regenerate badges.
+
+---
+
+### About DestinE Climate Digital Twin
+
+This project is part of the **Destination Earth (DestinE) Climate Change Adaptation Digital Twin** initiative, a flagship programme of the European Union's digital strategy for climate adaptation and resilience.
+
+**DestinE** aims to develop a highly accurate digital model of the Earth to monitor and predict the interaction between natural phenomena and human activities. The Climate Change Adaptation Digital Twin specifically focuses on:
+
+- 🌡️ **Extreme Weather Events**: High-resolution modeling of hurricanes, floods, droughts, and heatwaves
+- 🌊 **Climate Change Impacts**: Long-term climate projections and impact assessments
+- 🛡️ **Adaptation Strategies**: Testing and optimizing climate adaptation measures
+- 🔬 **Scientific Research**: Providing cutting-edge tools for climate scientists and decision-makers
+
+**Key Infrastructure Partners**:
+- **European Centre for Medium-Range Weather Forecasts (ECMWF)** - Core Platform
+- **European Space Agency (ESA)** - Earth Observation Data
+- **European Organisation for the Exploitation of Meteorological Satellites (EUMETSAT)** - Satellite Data
+
+**Learn more**: [https://destination-earth.eu/](https://destination-earth.eu/)
+
+---
 
 ## Acknowledgments
 
-This project is part of the DestinE Climate Digital Twin initiative.
+This project is supported by the **European Union's Digital Europe Programme** under the DestinE initiative.
+
+We acknowledge the computational resources and infrastructure provided by:
+
+- **Barcelona Supercomputing Center (BSC)** - MareNostrum supercomputer
+- **LUMI consortium** - Pre-exascale European supercomputer
+- **ECMWF** - High-performance computing facilities for climate modeling
+
+Special thanks to the **Autosubmit** workflow management team at BSC for their collaboration and support in developing this error scanning framework.
