@@ -37,17 +37,17 @@ def generate_author_card_html(author: Dict[str, str]) -> str:
         orcid_badge = f'<a href="https://orcid.org/{author["orcid"]}" target="_blank"><img src="https://orcid.org/assets/vectors/orcid.logo.icon.svg" width="16" height="16" alt="ORCID"></a>'
 
     html = f"""
-<div align="center" style="display: inline-block; margin: 10px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; width: 200px;">
+<div align="center" style="display: inline-block; margin: 10px; padding: 20px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border-radius: 50%; width: 180px; height: 180px; position: relative;">
     <a href="mailto:{author['email']}">
-        <img src="{gravatar_url}" alt="{author['name']}" style="border-radius: 50%; width: 80px; height: 80px;">
+        <img src="{gravatar_url}" alt="{author['name']}" style="border-radius: 50%; width: 100px; height: 100px; border: 3px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
     </a>
-    <h4 style="margin: 10px 0 5px 0;">{author['name']}</h4>
-    <p style="margin: 5px 0; font-size: 0.9em; color: #666;">{author['affiliation']}</p>
-    <p style="margin: 5px 0;">
+    <h4 style="margin: 8px 0 3px 0; font-size: 0.95em;">{author['name']}</h4>
+    <p style="margin: 3px 0; font-size: 0.75em; color: #555;">{author['affiliation']}</p>
+    <p style="margin: 5px 0; font-size: 1.2em;">
         {orcid_badge if orcid_badge else ""}
-        <a href="mailto:{author['email']}" style="font-size: 0.8em;">📧</a>
+        <a href="mailto:{author['email']}" style="text-decoration: none;">📧</a>
     </p>
-    {f'<p style="margin: 5px 0; font-size: 0.85em; font-style: italic;">{author.get("role", "")}</p>' if author.get('role') else ""}
+    {f'<p style="margin: 3px 0; font-size: 0.7em; font-style: italic; color: #666;">{author.get("role", "")}</p>' if author.get('role') else ""}
 </div>
 """
     return html.strip()

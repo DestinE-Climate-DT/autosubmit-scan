@@ -417,21 +417,21 @@ The `as-scan` software is proudly funded by the European Union 🇪🇺 and deve
 <!-- Edit AUTHORS.yaml to add/modify authors -->
 
 <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; margin: 20px 0;">
-<div align="center" style="display: inline-block; margin: 10px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; width: 200px;">
+<div align="center" style="display: inline-block; margin: 10px; padding: 20px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border-radius: 50%; width: 180px; height: 180px; position: relative;">
     <a href="mailto:paul.gierz@awi.de">
-        <img src="https://secure.gravatar.com/avatar/709ea66dc102e6bc4547032f85ff6c95?s=100&d=identicon" alt="Paul Gierz" style="border-radius: 50%; width: 80px; height: 80px;">
+        <img src="https://secure.gravatar.com/avatar/709ea66dc102e6bc4547032f85ff6c95?s=100&d=identicon" alt="Dr. Paul Gierz" style="border-radius: 50%; width: 100px; height: 100px; border: 3px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
     </a>
-    <h4 style="margin: 10px 0 5px 0;">Paul Gierz</h4>
-    <p style="margin: 5px 0; font-size: 0.9em; color: #666;">Alfred Wegener Institute (AWI)</p>
-    <p style="margin: 5px 0;">
+    <h4 style="margin: 8px 0 3px 0; font-size: 0.95em;">Dr. Paul Gierz</h4>
+    <p style="margin: 3px 0; font-size: 0.75em; color: #555;">Alfred Wegener Institute (AWI)</p>
+    <p style="margin: 5px 0; font-size: 1.2em;">
         <a href="https://orcid.org/0000-0002-4512-087X" target="_blank"><img src="https://orcid.org/assets/vectors/orcid.logo.icon.svg" width="16" height="16" alt="ORCID"></a>
-        <a href="mailto:paul.gierz@awi.de" style="font-size: 0.8em;">📧</a>
+        <a href="mailto:paul.gierz@awi.de" style="text-decoration: none;">📧</a>
     </p>
-    <p style="margin: 5px 0; font-size: 0.85em; font-style: italic;">Lead Developer, Architecture</p>
+    <p style="margin: 3px 0; font-size: 0.7em; font-style: italic; color: #666;">Lead Developer, Architecture</p>
 </div>
 </div>
 
-> **Adding authors**: Edit [`AUTHORS.yaml`](AUTHORS.yaml) and run `python scripts/generate_author_badges.py` to regenerate badges.
+<!-- > **Adding authors**: Edit [`AUTHORS.yaml`](AUTHORS.yaml) and run `python scripts/generate_author_badges.py` to regenerate badges. -->
 
 ---
 
