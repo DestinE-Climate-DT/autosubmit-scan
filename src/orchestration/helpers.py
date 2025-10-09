@@ -13,9 +13,10 @@ import fsspec
 from pathlib import Path
 from typing import List, Dict, Any
 from datetime import datetime
+from urllib.parse import urlparse
 
 from src.domain.models import ErrorCatalog, ErrorDefinition
-from src.cli.completion import normalize_uri_for_fsspec
+from src.cli.completion import normalize_uri_for_fsspec, get_fsspec_filesystem
 
 
 def get_file_hash(uri: str) -> str:
@@ -62,19 +63,29 @@ def expand_fsspec_patterns(patterns: List[str]) -> List[str]:
 
     for pattern in patterns:
         try:
-            # Determine the protocol from the pattern
-            if '://' in pattern:
-                # Extract protocol from URI
-                protocol_part = pattern.split('://')[0]
-            else:
-                # Local file without protocol
-                protocol_part = 'file'
+            # Get the filesystem with SSH config support
+            fs = get_fsspec_filesystem(pattern)
 
-            # Get the filesystem
-            fs = fsspec.filesystem(protocol_part)
+            # Normalize the pattern for fsspec
+            normalized_pattern = normalize_uri_for_fsspec(pattern)
+
+            # Parse the normalized URI to extract path and protocol
+            parsed = urlparse(normalized_pattern)
+            protocol_part = parsed.scheme or 'file'
+
+            # Extract the path component for globbing
+            if protocol_part in ('ssh', 'sftp', 's3'):
+                # For remote filesystems, use the path component
+                glob_path = parsed.path
+            elif protocol_part == 'file':
+                # For file:// URIs, use the path
+                glob_path = parsed.path
+            else:
+                # For local paths without protocol
+                glob_path = normalized_pattern
 
             # Expand the glob pattern directly on the filesystem
-            matched_files = fs.glob(pattern)
+            matched_files = fs.glob(glob_path)
 
             # Convert to full URIs
             for matched_file in matched_files:
@@ -85,8 +96,19 @@ def expand_fsspec_patterns(patterns: List[str]) -> List[str]:
                         matched_file = '/' + matched_file
                     full_uri = f"file://{matched_file}"
                 elif protocol_part in ('s3', 'ssh', 'sftp', 'ftp'):
-                    # Remote protocols - rebuild URI
-                    full_uri = f"{protocol_part}://{matched_file}"
+                    # Remote protocols - rebuild URI with hostname
+                    # matched_file is just the path, so we need to add back the netloc
+                    if parsed.netloc:
+                        # For SSH/SFTP, use rsync-style format (with colon before path)
+                        # This is required by our Pydantic validation
+                        if protocol_part in ('ssh', 'sftp'):
+                            # Rsync-style: ssh://host:/path
+                            full_uri = f"{protocol_part}://{parsed.netloc}:/{matched_file.lstrip('/')}"
+                        else:
+                            # Other protocols use standard format
+                            full_uri = f"{protocol_part}://{parsed.netloc}/{matched_file.lstrip('/')}"
+                    else:
+                        full_uri = f"{protocol_part}://{matched_file}"
                 else:
                     # Local path without protocol - keep as-is
                     full_uri = matched_file
@@ -133,11 +155,24 @@ def get_fingerprint(uri: str) -> Dict[str, Any]:
         # Normalize rsync-style URIs to fsspec format
         normalized_uri = normalize_uri_for_fsspec(uri)
 
-        # Open file with fsspec
-        fs, _, paths = fsspec.core.get_fs_token_paths(normalized_uri)
+        # Get filesystem with SSH config support
+        fs = get_fsspec_filesystem(uri)
+
+        # Parse URI to extract path
+        parsed = urlparse(normalized_uri)
+        protocol_part = parsed.scheme or 'file'
+
+        # Extract the path component
+        if protocol_part in ('ssh', 'sftp', 's3'):
+            file_path = parsed.path
+        elif protocol_part == 'file':
+            file_path = parsed.path
+        else:
+            # Local path without protocol
+            file_path = normalized_uri
 
         # Get file info
-        file_info = fs.info(paths[0])
+        file_info = fs.info(file_path)
 
         # Extract metadata
         size = file_info.get('size', 0)

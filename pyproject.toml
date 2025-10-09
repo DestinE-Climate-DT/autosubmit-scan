@@ -9,11 +9,15 @@ description = "Autosubmit workflow scanning and catalog management"
 readme = "README.md"
 requires-python = ">=3.12"
 authors = [
-    {name = "Paul Gierz", email = "paul.gierz@awi.de", orcid = "0000-0002-4512-087X"}
+    {name = "Paul Gierz", email = "paul.gierz@awi.de"}  # ORCID: 0000-0002-4512-087X
 ]
 
 [project.scripts]
 as-scan = "src.cli.main:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
 
 [tool.ruff]
 line-length = 130

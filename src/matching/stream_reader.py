@@ -10,8 +10,9 @@ Provides memory-efficient line-by-line reading for files accessed via:
 
 import fsspec
 from typing import Iterator, Tuple, List, Optional
+from urllib.parse import urlparse
 
-from src.cli.completion import normalize_uri_for_fsspec
+from src.cli.completion import normalize_uri_for_fsspec, get_fsspec_filesystem
 
 
 class FileStream:
@@ -34,6 +35,23 @@ class FileStream:
         self.file_handle = file_handle
         self.uri = uri
         self.strip_newlines = strip_newlines
+
+    def __enter__(self):
+        """Enter context manager."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Exit context manager and close file handle."""
+        self.close()
+        return False
+
+    def close(self):
+        """Close the file handle."""
+        if self.file_handle:
+            try:
+                self.file_handle.close()
+            except Exception:
+                pass  # Ignore errors on close
 
     @classmethod
     def open_file(cls, uri: str, strip_newlines: bool = False) -> "FileStream":
@@ -59,9 +77,24 @@ class FileStream:
             # Normalize rsync-style URIs to fsspec format
             normalized_uri = normalize_uri_for_fsspec(uri)
 
-            # Open file with fsspec
-            file_handle = fsspec.open(normalized_uri, mode='r', encoding='utf-8')
-            opened_file = file_handle.open()
+            # Get filesystem with SSH config support
+            fs = get_fsspec_filesystem(uri)
+
+            # Parse URI to extract path
+            parsed = urlparse(normalized_uri)
+            protocol_part = parsed.scheme or 'file'
+
+            # Extract the path component
+            if protocol_part in ('ssh', 'sftp', 's3'):
+                file_path = parsed.path
+            elif protocol_part == 'file':
+                file_path = parsed.path
+            else:
+                # Local path without protocol
+                file_path = normalized_uri
+
+            # Open file with filesystem
+            opened_file = fs.open(file_path, mode='r', encoding='utf-8')
 
             return cls(opened_file, uri, strip_newlines)
 

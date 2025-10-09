@@ -169,20 +169,28 @@ rule match_pattern:
 # Creates list of only files that have matches
 # ============================================================================
 
+def get_match_files(wildcards):
+    """Get match files for all discovered files (after discover_files checkpoint)."""
+    # Wait for discover_files checkpoint to complete
+    checkpoint_output = checkpoints.discover_files.get(**wildcards).output.manifest
+
+    # Read the discovered file manifest
+    file_uris = read_manifest(checkpoint_output)
+
+    # Generate file hashes and expand to match files
+    file_hashes = [get_file_hash(uri) for uri in file_uris]
+    return expand(
+        f"{MATCHES_DIR}/{{error_id}}/{{file_hash}}.json",
+        error_id=wildcards.error_id,
+        file_hash=file_hashes
+    )
+
+
 checkpoint filter_matches:
     input:
         # This will depend on all match files for this error
         # We use a function to get them dynamically after discover_files checkpoint
-        matches=lambda wildcards: expand(
-            f"{MATCHES_DIR}/{{error_id}}/{{file_hash}}.json",
-            error_id=wildcards.error_id,
-            file_hash=[
-                get_file_hash(uri)
-                for uri in read_manifest(
-                    f"{MANIFESTS_DIR}/{wildcards.error_id}_files.txt"
-                )
-            ]
-        )
+        matches=get_match_files
     output:
         filtered=f"{FILTERED_DIR}/{{error_id}}_files_with_matches.txt"
     run:

@@ -19,7 +19,7 @@ logger.add(
 
 
 @click.group()
-@click.version_option(version="0.1.0", prog_name="as-scan")
+@click.version_option(version="bleeding-edge (paul.gierz@awi.de)", prog_name="as-scan")
 @click.option(
     "-v", "--verbose",
     is_flag=True,
@@ -41,16 +41,22 @@ def cli(verbose, quiet):
       1. Initialize a new catalog interactively:
          $ as-scan init
 
-      2. Validate your catalog:
+      2. Add errors to an existing catalog:
+         $ as-scan add my_catalog.yaml
+
+      3. Validate your catalog:
          $ as-scan validate my_catalog.yaml
 
-      3. Run a scan:
+      4. Visualize workflow DAG:
+         $ as-scan dag --catalog my_catalog.yaml --output dag.png --format png
+
+      5. Run a scan:
          $ as-scan scan --catalog my_catalog.yaml --output ./results
 
-      4. View results interactively:
+      6. View results interactively:
          $ as-scan view ./results/report.json
 
-      5. Export to markdown:
+      7. Export to markdown:
          $ as-scan export ./results/report.json --template markdown --output report.md
 
     \b
@@ -80,6 +86,8 @@ from src.cli.commands.view import view
 from src.cli.commands.export import export
 from src.cli.commands.validate import validate
 from src.cli.commands.init import init
+from src.cli.commands.add import add
+from src.cli.commands.dag import dag
 
 # Register commands
 cli.add_command(scan)
@@ -87,6 +95,8 @@ cli.add_command(view)
 cli.add_command(export)
 cli.add_command(validate)
 cli.add_command(init)
+cli.add_command(add)
+cli.add_command(dag)
 
 
 def main():

@@ -18,7 +18,11 @@ from prompt_toolkit.document import Document
 import fsspec
 
 
-__all__ = ['normalize_uri_for_fsspec', 'FsspecPathCompleter', 'GlobPatternCompleter']
+__all__ = ['normalize_uri_for_fsspec', 'get_fsspec_filesystem', 'FsspecPathCompleter', 'GlobPatternCompleter']
+
+
+# Global cache for filesystem connections to enable connection pooling
+_FILESYSTEM_CACHE = {}
 
 
 def normalize_uri_for_fsspec(uri: str) -> str:
@@ -59,6 +63,136 @@ def normalize_uri_for_fsspec(uri: str) -> str:
                 return f"{scheme}://{rest}"
 
     return uri
+
+
+def _parse_ssh_config_standalone(alias: str) -> Dict[str, str]:
+    """Parse SSH config to get connection details for an alias.
+
+    Args:
+        alias: SSH host alias (e.g., 'mn5', 'lumi')
+
+    Returns:
+        Dictionary with 'hostname', 'user', 'port', 'identity_file'
+    """
+    ssh_config_path = Path.home() / ".ssh" / "config"
+    config = {
+        'hostname': alias,  # Default to alias if not found
+        'user': os.getenv('USER'),
+        'port': 22,
+        'identity_file': None
+    }
+
+    if not ssh_config_path.exists():
+        return config
+
+    try:
+        in_target_host = False
+
+        with open(ssh_config_path, 'r') as f:
+            for line in f:
+                line = line.strip()
+
+                # New Host section
+                if line.startswith('Host '):
+                    host_line = line[5:].strip()
+                    # Check if this is our target host
+                    hosts_in_line = host_line.split()
+                    in_target_host = alias in hosts_in_line
+                    continue
+
+                # Parse config options for our target host
+                if in_target_host and line:
+                    parts = line.split(None, 1)
+                    if len(parts) == 2:
+                        key, value = parts
+                        key_lower = key.lower()
+
+                        if key_lower == 'hostname':
+                            config['hostname'] = value
+                        elif key_lower == 'user':
+                            config['user'] = value
+                        elif key_lower == 'port':
+                            try:
+                                config['port'] = int(value)
+                            except ValueError:
+                                pass
+                        elif key_lower == 'identityfile':
+                            # Expand ~ in identity file path
+                            identity_path = os.path.expanduser(value)
+                            config['identity_file'] = identity_path
+
+    except Exception:
+        pass
+
+    return config
+
+
+def get_fsspec_filesystem(uri: str):
+    """Get fsspec filesystem for a given URI with SSH config support.
+
+    This function handles:
+    - Local filesystems
+    - S3 filesystems
+    - SSH/SFTP filesystems with automatic SSH config parsing
+    - Connection pooling to reuse SSH connections
+
+    Args:
+        uri: File URI (can be rsync-style for SSH/SFTP)
+
+    Returns:
+        fsspec filesystem instance
+
+    Examples:
+        >>> fs = get_fsspec_filesystem("ssh://mn5:/path/to/file")
+        >>> fs = get_fsspec_filesystem("s3://bucket/path")
+        >>> fs = get_fsspec_filesystem("/local/path")
+    """
+    # Normalize rsync-style URIs
+    normalized_uri = normalize_uri_for_fsspec(uri)
+    parsed = urlparse(normalized_uri)
+    protocol = parsed.scheme or 'file'
+
+    # Create cache key and check for cached connection
+    if protocol in ('ssh', 'sftp'):
+        hostname = parsed.hostname or parsed.netloc.rstrip(':/')
+        ssh_config = _parse_ssh_config_standalone(hostname)
+        cache_key = f"{protocol}://{ssh_config['user']}@{ssh_config['hostname']}:{ssh_config['port']}"
+
+        # Check for cached connection and verify it's still alive
+        if cache_key in _FILESYSTEM_CACHE:
+            cached_fs = _FILESYSTEM_CACHE[cache_key]
+            try:
+                # Test connection by trying to list root
+                cached_fs.ls("/", detail=False)
+                return cached_fs
+            except Exception:
+                # Connection is dead, remove from cache and create new one
+                del _FILESYSTEM_CACHE[cache_key]
+
+    # Create filesystem based on protocol
+    if protocol == 's3':
+        fs = fsspec.filesystem('s3', anon=False)
+    elif protocol in ('ssh', 'sftp'):
+        # Build fsspec filesystem with proper settings
+        fs_kwargs = {
+            'host': ssh_config['hostname'],
+            'username': parsed.username or ssh_config['user'],
+            'port': ssh_config['port']
+        }
+
+        # Add identity file if specified
+        if ssh_config['identity_file']:
+            fs_kwargs['client_keys'] = [ssh_config['identity_file']]
+
+        fs = fsspec.filesystem(protocol, **fs_kwargs)
+
+        # Cache SSH/SFTP connections for reuse
+        _FILESYSTEM_CACHE[cache_key] = fs
+    else:
+        # Default to local filesystem
+        fs = fsspec.filesystem('file')
+
+    return fs
 
 
 class FsspecPathCompleter(Completer):

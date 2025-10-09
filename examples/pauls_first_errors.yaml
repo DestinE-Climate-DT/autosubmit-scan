@@ -1,0 +1,23 @@
+version: 1.0.0
+schema_version: 1.0.0
+metadata:
+  name: Paul's Errors
+  description: My first error catalog
+  author: pgierz
+  created: '2025-10-08T16:18:12.943455+00:00'
+  updated: '2025-10-08T16:18:12.943455+00:00'
+errors:
+  MissingGSVMessageError:
+    id: MissingGSVMessageError
+    pattern:
+      type: literal
+      pattern: gsv.exceptions.MissingGSVMessageError
+    files:
+    - ssh://mn5:/gpfs/scratch/ehpc01/awi478153/a23i/LOG_a23i/*.out
+    - ssh://mn5:/gpfs/scratch/ehpc01/awi478153/a23i/LOG_a23i/*.err
+    meaning: Something with GSW, I don't know
+    suggestion: Review logs and take appropriate action
+    context_lines: 5
+    next_errors: []
+    metadata:
+      severity: medium

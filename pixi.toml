@@ -2,7 +2,7 @@
 authors = ["Paul Gierz <pgierz@awi.de>"]
 channels = ["conda-forge", "bioconda"]
 name = "main"
-platforms = ["osx-arm64"]
+platforms = ["osx-arm64", "linux-64"]
 version = "0.1.0"
 
 [tasks]
@@ -24,6 +24,7 @@ ci-setup-ftp = "python scripts/ci/setup_ftp.py"
 
 [dependencies]
 # Core dependencies
+pip = "*"
 loguru = ">=0.7.3,<0.8"
 check-jsonschema = ">=0.33.3,<0.34"
 returns = ">=0.26.0,<0.27"
