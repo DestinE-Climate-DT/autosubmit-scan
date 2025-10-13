@@ -9,14 +9,13 @@ Provides utilities for:
 """
 
 import hashlib
-import fsspec
-from pathlib import Path
-from typing import List, Dict, Any
 from datetime import datetime
+from pathlib import Path
+from typing import Any
 from urllib.parse import urlparse
 
+from src.cli.completion import get_fsspec_filesystem, normalize_uri_for_fsspec
 from src.domain.models import ErrorCatalog, ErrorDefinition
-from src.cli.completion import normalize_uri_for_fsspec, get_fsspec_filesystem
 
 
 def get_file_hash(uri: str) -> str:
@@ -32,10 +31,10 @@ def get_file_hash(uri: str) -> str:
         >>> get_file_hash("s3://bucket/path/file.log")
         'a1b2c3d4...'
     """
-    return hashlib.sha256(uri.encode('utf-8')).hexdigest()
+    return hashlib.sha256(uri.encode("utf-8")).hexdigest()
 
 
-def expand_fsspec_patterns(patterns: List[str]) -> List[str]:
+def expand_fsspec_patterns(patterns: list[str]) -> list[str]:
     """Expand glob patterns to list of matching file URIs.
 
     Supports all fsspec protocols:
@@ -71,13 +70,13 @@ def expand_fsspec_patterns(patterns: List[str]) -> List[str]:
 
             # Parse the normalized URI to extract path and protocol
             parsed = urlparse(normalized_pattern)
-            protocol_part = parsed.scheme or 'file'
+            protocol_part = parsed.scheme or "file"
 
             # Extract the path component for globbing
-            if protocol_part in ('ssh', 'sftp', 's3'):
+            if protocol_part in ("ssh", "sftp", "s3"):
                 # For remote filesystems, use the path component
                 glob_path = parsed.path
-            elif protocol_part == 'file':
+            elif protocol_part == "file":
                 # For file:// URIs, use the path
                 glob_path = parsed.path
             else:
@@ -90,18 +89,18 @@ def expand_fsspec_patterns(patterns: List[str]) -> List[str]:
             # Convert to full URIs
             for matched_file in matched_files:
                 # Build full URI based on pattern format
-                if pattern.startswith('file://'):
+                if pattern.startswith("file://"):
                     # Normalize file:// URIs - ensure absolute path
-                    if not matched_file.startswith('/'):
-                        matched_file = '/' + matched_file
+                    if not matched_file.startswith("/"):
+                        matched_file = "/" + matched_file
                     full_uri = f"file://{matched_file}"
-                elif protocol_part in ('s3', 'ssh', 'sftp', 'ftp'):
+                elif protocol_part in ("s3", "ssh", "sftp", "ftp"):
                     # Remote protocols - rebuild URI with hostname
                     # matched_file is just the path, so we need to add back the netloc
                     if parsed.netloc:
                         # For SSH/SFTP, use rsync-style format (with colon before path)
                         # This is required by our Pydantic validation
-                        if protocol_part in ('ssh', 'sftp'):
+                        if protocol_part in ("ssh", "sftp"):
                             # Rsync-style: ssh://host:/path
                             full_uri = f"{protocol_part}://{parsed.netloc}:/{matched_file.lstrip('/')}"
                         else:
@@ -124,7 +123,7 @@ def expand_fsspec_patterns(patterns: List[str]) -> List[str]:
     return sorted(set(all_files))
 
 
-def get_fingerprint(uri: str) -> Dict[str, Any]:
+def get_fingerprint(uri: str) -> dict[str, Any]:
     """Get file metadata fingerprint for caching and change detection.
 
     Fingerprint includes:
@@ -160,12 +159,12 @@ def get_fingerprint(uri: str) -> Dict[str, Any]:
 
         # Parse URI to extract path
         parsed = urlparse(normalized_uri)
-        protocol_part = parsed.scheme or 'file'
+        protocol_part = parsed.scheme or "file"
 
         # Extract the path component
-        if protocol_part in ('ssh', 'sftp', 's3'):
+        if protocol_part in ("ssh", "sftp", "s3"):
             file_path = parsed.path
-        elif protocol_part == 'file':
+        elif protocol_part == "file":
             file_path = parsed.path
         else:
             # Local path without protocol
@@ -175,10 +174,10 @@ def get_fingerprint(uri: str) -> Dict[str, Any]:
         file_info = fs.info(file_path)
 
         # Extract metadata
-        size = file_info.get('size', 0)
+        size = file_info.get("size", 0)
 
         # Get modification time
-        mtime = file_info.get('mtime')
+        mtime = file_info.get("mtime")
         if mtime is not None:
             # Convert to ISO format
             if isinstance(mtime, (int, float)):
@@ -187,41 +186,42 @@ def get_fingerprint(uri: str) -> Dict[str, Any]:
                 mtime_dt = mtime
             else:
                 mtime_dt = datetime.now()
-            mtime_str = mtime_dt.isoformat() + 'Z'
+            mtime_str = mtime_dt.isoformat() + "Z"
         else:
-            mtime_str = datetime.now().isoformat() + 'Z'
+            mtime_str = datetime.now().isoformat() + "Z"
 
         # Compute checksum for local files
         checksum = None
         try:
             # Determine if this is a local file
             is_local = False
-            if hasattr(fs, 'protocol'):
+            if hasattr(fs, "protocol"):
                 protocol = fs.protocol
                 if isinstance(protocol, list):
                     protocol = protocol[0]
                 # Check for local file protocols
-                if protocol in ('file', 'local', 'abstract'):
+                if protocol in ("file", "local", "abstract"):
                     is_local = True
             # Also check if URI doesn't have a protocol (local path)
-            if '://' not in uri or uri.startswith('file://'):
+            if "://" not in uri or uri.startswith("file://"):
                 is_local = True
 
             if is_local:
                 # For local files, compute MD5 checksum
                 import hashlib
+
                 md5_hash = hashlib.md5()
 
-                with fs.open(paths[0], 'rb') as f:
+                with fs.open(paths[0], "rb") as f:
                     # Read in chunks to handle large files
-                    for chunk in iter(lambda: f.read(8192), b''):
+                    for chunk in iter(lambda: f.read(8192), b""):
                         md5_hash.update(chunk)
 
                 checksum = f"md5:{md5_hash.hexdigest()}"
 
             # For S3, use ETag if available
-            elif hasattr(fs, 'protocol') and 's3' in str(fs.protocol):
-                etag = file_info.get('ETag', '').strip('"')
+            elif hasattr(fs, "protocol") and "s3" in str(fs.protocol):
+                etag = file_info.get("ETag", "").strip('"')
                 if etag:
                     checksum = f"etag:{etag}"
 
@@ -234,7 +234,7 @@ def get_fingerprint(uri: str) -> Dict[str, Any]:
             "uri": uri,
             "size": size,
             "mtime": mtime_str,
-            "fingerprinted_at": datetime.now().isoformat() + 'Z',
+            "fingerprinted_at": datetime.now().isoformat() + "Z",
         }
 
         if checksum:
@@ -248,7 +248,7 @@ def get_fingerprint(uri: str) -> Dict[str, Any]:
         raise PermissionError(f"Permission denied: {uri}") from e
 
 
-def read_manifest(manifest_path: str) -> List[str]:
+def read_manifest(manifest_path: str) -> list[str]:
     """Read a manifest file containing list of file URIs.
 
     Manifest format:
@@ -270,13 +270,13 @@ def read_manifest(manifest_path: str) -> List[str]:
     """
     uris = []
 
-    with open(manifest_path, 'r', encoding='utf-8') as f:
+    with open(manifest_path, encoding="utf-8") as f:
         for line in f:
             # Strip whitespace
             line = line.strip()
 
             # Skip empty lines and comments
-            if not line or line.startswith('#'):
+            if not line or line.startswith("#"):
                 continue
 
             uris.append(line)
@@ -284,7 +284,7 @@ def read_manifest(manifest_path: str) -> List[str]:
     return uris
 
 
-def write_manifest(manifest_path: str, uris: List[str]) -> None:
+def write_manifest(manifest_path: str, uris: list[str]) -> None:
     """Write a manifest file containing list of file URIs.
 
     Args:
@@ -297,7 +297,7 @@ def write_manifest(manifest_path: str, uris: List[str]) -> None:
     # Ensure parent directory exists
     Path(manifest_path).parent.mkdir(parents=True, exist_ok=True)
 
-    with open(manifest_path, 'w', encoding='utf-8') as f:
+    with open(manifest_path, "w", encoding="utf-8") as f:
         for uri in uris:
             f.write(f"{uri}\n")
 
@@ -322,9 +322,6 @@ def get_error_definition(catalog: ErrorCatalog, error_id: str) -> ErrorDefinitio
         'Job was killed due to out-of-memory condition'
     """
     if error_id not in catalog.errors:
-        raise KeyError(
-            f"Error ID '{error_id}' not found in catalog. "
-            f"Available errors: {list(catalog.errors.keys())}"
-        )
+        raise KeyError(f"Error ID '{error_id}' not found in catalog. " f"Available errors: {list(catalog.errors.keys())}")
 
     return catalog.errors[error_id]

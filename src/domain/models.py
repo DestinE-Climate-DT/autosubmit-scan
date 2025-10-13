@@ -12,17 +12,18 @@ This module defines the core domain entities using Pydantic v2:
 - ErrorCatalog: Complete error catalog
 """
 
-from enum import Enum
-from typing import Dict, List, Optional, Any
 from datetime import datetime
+from enum import Enum
+from typing import Any
+
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from src.domain.validation import (
+    validate_callable_string,
+    validate_non_negative_int,
+    validate_positive_int,
     validate_semver,
     validate_uri,
-    validate_callable_string,
-    validate_positive_int,
-    validate_non_negative_int,
 )
 
 
@@ -59,9 +60,7 @@ class PatternMatcher(BaseModel):
 
     type: PatternType = Field(..., description="Type of pattern matcher")
     pattern: str = Field(..., description="Pattern string or callable reference")
-    flags: Optional[List[str]] = Field(
-        None, description="Regex flags (IGNORECASE, MULTILINE, etc.)"
-    )
+    flags: list[str] | None = Field(None, description="Regex flags (IGNORECASE, MULTILINE, etc.)")
 
     @field_validator("pattern")
     @classmethod
@@ -91,19 +90,15 @@ class ConditionSpec(BaseModel):
     model_config = {"validate_assignment": True}
 
     type: ConditionType = Field(..., description="Type of condition")
-    conditions: Optional[List["ConditionSpec"]] = Field(
-        None, description="Nested conditions for AND/OR"
-    )
-    callable: Optional[str] = Field(
-        None, description="Callable reference for CUSTOM (module:function)"
-    )
-    field: Optional[str] = Field(None, description="Field name for FIELD_* operations")
-    operator: Optional[str] = Field(None, description="Operator for FIELD_* operations")
-    value: Optional[Any] = Field(None, description="Value for FIELD_* operations")
+    conditions: list["ConditionSpec"] | None = Field(None, description="Nested conditions for AND/OR")
+    callable: str | None = Field(None, description="Callable reference for CUSTOM (module:function)")
+    field: str | None = Field(None, description="Field name for FIELD_* operations")
+    operator: str | None = Field(None, description="Operator for FIELD_* operations")
+    value: Any | None = Field(None, description="Value for FIELD_* operations")
 
     @field_validator("callable")
     @classmethod
-    def validate_callable(cls, v: Optional[str]) -> Optional[str]:
+    def validate_callable(cls, v: str | None) -> str | None:
         """Validate callable string format."""
         if v is not None:
             return validate_callable_string(v)
@@ -114,9 +109,7 @@ class ConditionSpec(BaseModel):
         """Validate that required fields are present based on condition type."""
         if self.type in (ConditionType.AND, ConditionType.OR):
             if not self.conditions:
-                raise ValueError(
-                    f"{self.type.value} condition requires 'conditions' list"
-                )
+                raise ValueError(f"{self.type.value} condition requires 'conditions' list")
 
         if self.type == ConditionType.CUSTOM:
             if not self.callable:
@@ -175,20 +168,16 @@ class ErrorDefinition(BaseModel):
 
     id: str = Field(..., description="Unique error identifier")
     pattern: PatternMatcher = Field(..., description="Pattern to match")
-    files: List[str] = Field(..., description="File URIs or patterns (fsspec compatible)")
+    files: list[str] = Field(..., description="File URIs or patterns (fsspec compatible)")
     meaning: str = Field(..., description="Human-readable error description")
     context_lines: int = Field(..., description="Number of context lines to capture")
     suggestion: str = Field(..., description="Suggested action")
-    next_errors: List[ErrorCondition] = Field(
-        default_factory=list, description="Next errors to check (railway pattern)"
-    )
-    metadata: Optional[Dict[str, Any]] = Field(
-        None, description="Additional metadata (tags, severity, etc.)"
-    )
+    next_errors: list[ErrorCondition] = Field(default_factory=list, description="Next errors to check (railway pattern)")
+    metadata: dict[str, Any] | None = Field(None, description="Additional metadata (tags, severity, etc.)")
 
     @field_validator("files")
     @classmethod
-    def validate_files_not_empty(cls, v: List[str]) -> List[str]:
+    def validate_files_not_empty(cls, v: list[str]) -> list[str]:
         """Validate that files list is not empty."""
         if not v:
             raise ValueError("Files list cannot be empty")
@@ -196,7 +185,7 @@ class ErrorDefinition(BaseModel):
 
     @field_validator("files")
     @classmethod
-    def validate_file_uris(cls, v: List[str]) -> List[str]:
+    def validate_file_uris(cls, v: list[str]) -> list[str]:
         """Validate each file URI."""
         for uri in v:
             validate_uri(uri)
@@ -221,16 +210,10 @@ class ErrorMatch(BaseModel):
     file_uri: str = Field(..., description="URI of the file where match occurred")
     line_number: int = Field(..., description="Line number of the match (1-indexed)")
     matched_text: str = Field(..., description="Text that matched the pattern")
-    context_before: List[str] = Field(
-        default_factory=list, description="Lines before the match"
-    )
-    context_after: List[str] = Field(
-        default_factory=list, description="Lines after the match"
-    )
+    context_before: list[str] = Field(default_factory=list, description="Lines before the match")
+    context_after: list[str] = Field(default_factory=list, description="Lines after the match")
     timestamp: datetime = Field(..., description="When the match was found")
-    metadata: Dict[str, Any] = Field(
-        default_factory=dict, description="Additional match metadata"
-    )
+    metadata: dict[str, Any] = Field(default_factory=dict, description="Additional match metadata")
 
     @field_validator("file_uri")
     @classmethod
@@ -259,9 +242,7 @@ class ErrorCatalog(BaseModel):
     version: str = Field(..., description="Catalog content version (semver)")
     schema_version: str = Field(..., description="Catalog format version (semver)")
     metadata: CatalogMetadata = Field(..., description="Catalog metadata")
-    errors: Dict[str, ErrorDefinition] = Field(
-        default_factory=dict, description="Error definitions (id -> definition)"
-    )
+    errors: dict[str, ErrorDefinition] = Field(default_factory=dict, description="Error definitions (id -> definition)")
 
     @field_validator("version")
     @classmethod
@@ -280,7 +261,5 @@ class ErrorCatalog(BaseModel):
         """Validate that error IDs in dict keys match error definition IDs."""
         for key, error_def in self.errors.items():
             if key != error_def.id:
-                raise ValueError(
-                    f"Error key '{key}' does not match error definition ID '{error_def.id}'"
-                )
+                raise ValueError(f"Error key '{key}' does not match error definition ID '{error_def.id}'")
         return self

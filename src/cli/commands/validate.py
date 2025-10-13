@@ -3,8 +3,8 @@
 Validates error catalog files against the schema.
 """
 
-import sys
 import subprocess
+import sys
 from pathlib import Path
 
 import click
@@ -16,14 +16,9 @@ from src.domain.catalog import load_catalog
 
 
 @click.command()
-@click.argument(
-    "catalog_path",
-    type=click.Path(exists=True, dir_okay=False, resolve_path=True)
-)
+@click.argument("catalog_path", type=click.Path(exists=True, dir_okay=False, resolve_path=True))
 @click.option(
-    "--schema",
-    type=click.Path(exists=True, dir_okay=False, resolve_path=True),
-    help="Path to JSON schema file (optional)"
+    "--schema", type=click.Path(exists=True, dir_okay=False, resolve_path=True), help="Path to JSON schema file (optional)"
 )
 def validate(catalog_path, schema):
     """Validate error catalog file.
@@ -47,7 +42,7 @@ def validate(catalog_path, schema):
         # Step 1: Validate YAML syntax
         logger.info("Checking YAML syntax...")
         try:
-            with open(catalog_file, "r") as f:
+            with open(catalog_file) as f:
                 yaml_data = yaml.safe_load(f)
 
             if yaml_data is None:
@@ -85,13 +80,7 @@ def validate(catalog_path, schema):
             try:
                 # Use check-jsonschema tool
                 result = subprocess.run(
-                    [
-                        "check-jsonschema",
-                        "--schemafile", str(schema_file),
-                        str(catalog_file)
-                    ],
-                    capture_output=True,
-                    text=True
+                    ["check-jsonschema", "--schemafile", str(schema_file), str(catalog_file)], capture_output=True, text=True
                 )
 
                 if result.returncode != 0:
@@ -141,8 +130,8 @@ def validate(catalog_path, schema):
             for error_id, error_def in catalog.errors.items():
                 if error_def.next_errors:
                     for next_error in error_def.next_errors:
-                        next_id = next_error.error_id if hasattr(next_error, 'error_id') else next_error["error_id"]
-                        when_type = next_error.when.type if hasattr(next_error.when, 'type') else next_error["when"]["type"]
+                        next_id = next_error.error_id if hasattr(next_error, "error_id") else next_error["error_id"]
+                        when_type = next_error.when.type if hasattr(next_error.when, "type") else next_error["when"]["type"]
                         logger.info(f"  {error_id} --[{when_type}]--> {next_id}")
 
         logger.success("\nCatalog is valid and ready to use!")

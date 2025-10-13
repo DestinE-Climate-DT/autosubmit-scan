@@ -4,7 +4,6 @@ These commands will be integrated into the main CLI in Iteration 6.
 """
 
 from pathlib import Path
-from typing import Optional
 
 
 def view_command(report_path: str) -> None:
@@ -29,12 +28,7 @@ def view_command(report_path: str) -> None:
     app.run()
 
 
-def export_command(
-    report_path: str,
-    template: str,
-    output: str,
-    format: Optional[str] = None
-) -> None:
+def export_command(report_path: str, template: str, output: str, format: str | None = None) -> None:
     """Export error report using a template.
 
     Args:
@@ -52,11 +46,12 @@ def export_command(
         raise FileNotFoundError(f"Report file not found: {report_path}")
 
     # Import here to avoid circular dependencies
-    from src.reporting.templates import TemplateRenderer
     import json
 
+    from src.reporting.templates import TemplateRenderer
+
     # Load report
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         report_data = json.load(f)
 
     # Determine template name
@@ -67,7 +62,7 @@ def export_command(
             "md": "report.md.j2",
             "html": "report.html.j2",
             "text": "summary.txt.j2",
-            "txt": "summary.txt.j2"
+            "txt": "summary.txt.j2",
         }
         template_name = template_map.get(template, f"{template}.j2")
     else:

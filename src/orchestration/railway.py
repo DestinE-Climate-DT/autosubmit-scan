@@ -5,8 +5,8 @@ This module provides the railway pattern execution logic:
 - RailwayPlanner: Builds DAG of potential error chains for Snakemake
 """
 
-from typing import List, Dict, Set
-from src.domain.models import ErrorMatch, ErrorDefinition, ErrorCatalog
+
+from src.domain.models import ErrorCatalog, ErrorDefinition, ErrorMatch
 from src.orchestration.conditions import ConditionEvaluator
 
 
@@ -26,7 +26,7 @@ class RailwayExecutor:
         error_match: ErrorMatch,
         error_def: ErrorDefinition,
         catalog: ErrorCatalog,
-    ) -> List[str]:
+    ) -> list[str]:
         """Get list of next error IDs to check based on conditions.
 
         Evaluates all conditions in error_def.next_errors and returns
@@ -50,9 +50,7 @@ class RailwayExecutor:
 
         for error_condition in error_def.next_errors:
             # Evaluate the condition
-            if self.evaluator.evaluate(
-                error_condition.when, error_match, catalog
-            ):
+            if self.evaluator.evaluate(error_condition.when, error_match, catalog):
                 next_error_ids.append(error_condition.error_id)
 
         return next_error_ids
@@ -65,9 +63,7 @@ class RailwayPlanner:
     for Snakemake workflow generation.
     """
 
-    def build_execution_plan(
-        self, initial_error_id: str, catalog: ErrorCatalog
-    ) -> Dict[str, List[str]]:
+    def build_execution_plan(self, initial_error_id: str, catalog: ErrorCatalog) -> dict[str, list[str]]:
         """Build execution plan DAG for error chains.
 
         Traverses the error catalog starting from initial_error_id
@@ -95,9 +91,9 @@ class RailwayPlanner:
         if initial_error_id not in catalog.errors:
             return {}
 
-        plan: Dict[str, List[str]] = {}
-        visited: Set[str] = set()
-        to_visit: List[str] = [initial_error_id]
+        plan: dict[str, list[str]] = {}
+        visited: set[str] = set()
+        to_visit: list[str] = [initial_error_id]
 
         while to_visit:
             current_error_id = to_visit.pop(0)
@@ -118,9 +114,7 @@ class RailwayPlanner:
             error_def = catalog.errors[current_error_id]
 
             # Extract all potential next error IDs (regardless of conditions)
-            next_error_ids = [
-                error_condition.error_id for error_condition in error_def.next_errors
-            ]
+            next_error_ids = [error_condition.error_id for error_condition in error_def.next_errors]
 
             # Add to plan
             plan[current_error_id] = next_error_ids

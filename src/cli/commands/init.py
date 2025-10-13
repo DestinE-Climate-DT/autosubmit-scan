@@ -3,10 +3,10 @@
 Creates a sample error catalog to get started.
 """
 
-import sys
 import shutil
+import sys
+from datetime import UTC, datetime
 from pathlib import Path
-from datetime import datetime, timezone
 
 import click
 import questionary
@@ -23,35 +23,23 @@ def _create_interactive_catalog(output_path: Path) -> None:
     logger.info("Press Ctrl+C at any time to cancel\n")
 
     # Catalog metadata
-    catalog_name = questionary.text(
-        "Catalog name:",
-        default="My Error Catalog"
-    ).ask()
+    catalog_name = questionary.text("Catalog name:", default="My Error Catalog").ask()
 
-    catalog_description = questionary.text(
-        "Description:",
-        default="Error patterns for monitoring"
-    ).ask()
+    catalog_description = questionary.text("Description:", default="Error patterns for monitoring").ask()
 
-    author = questionary.text(
-        "Author:",
-        default="Your Name"
-    ).ask()
+    author = questionary.text("Author:", default="Your Name").ask()
 
     # Error definition
     error_id = questionary.text(
         "\nError ID (unique identifier, e.g., 'oom_error'):",
-        validate=lambda text: len(text) > 0 and text.replace("_", "").isalnum()
+        validate=lambda text: len(text) > 0 and text.replace("_", "").isalnum(),
     ).ask()
 
-    pattern_type = questionary.select(
-        "Pattern type:",
-        choices=["literal", "regex", "callable"]
-    ).ask()
+    pattern_type = questionary.select("Pattern type:", choices=["literal", "regex", "callable"]).ask()
 
     pattern_value = questionary.text(
         f"Pattern ({pattern_type}):",
-        default="ERROR" if pattern_type == "literal" else "ERROR|FATAL" if pattern_type == "regex" else "module:function"
+        default="ERROR" if pattern_type == "literal" else "ERROR|FATAL" if pattern_type == "regex" else "module:function",
     ).ask()
 
     # File URIs
@@ -70,7 +58,7 @@ def _create_interactive_catalog(output_path: Path) -> None:
                 f"\nFile URI #{len(files) + 1}: ",
                 completer=completer,
                 complete_while_typing=False,
-                default="" if files else "ssh://"
+                default="" if files else "ssh://",
             )
         except KeyboardInterrupt:
             raise
@@ -89,29 +77,18 @@ def _create_interactive_catalog(output_path: Path) -> None:
         logger.error("At least one file URI is required")
         sys.exit(1)
 
-    meaning = questionary.text(
-        "\nError meaning:",
-        default="Critical error detected"
-    ).ask()
+    meaning = questionary.text("\nError meaning:", default="Critical error detected").ask()
 
-    suggestion = questionary.text(
-        "Suggested action:",
-        default="Review logs and take appropriate action"
-    ).ask()
+    suggestion = questionary.text("Suggested action:", default="Review logs and take appropriate action").ask()
 
     context_lines = questionary.text(
-        "Context lines (before/after match):",
-        default="5",
-        validate=lambda text: text.isdigit() and int(text) >= 0
+        "Context lines (before/after match):", default="5", validate=lambda text: text.isdigit() and int(text) >= 0
     ).ask()
 
-    severity = questionary.select(
-        "Severity:",
-        choices=["low", "medium", "high", "critical"]
-    ).ask()
+    severity = questionary.select("Severity:", choices=["low", "medium", "high", "critical"]).ask()
 
     # Build catalog structure
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
 
     pattern_dict = {"type": pattern_type, "pattern": pattern_value}
     if pattern_type == "regex":
@@ -120,13 +97,7 @@ def _create_interactive_catalog(output_path: Path) -> None:
     catalog = {
         "version": "1.0.0",
         "schema_version": "1.0.0",
-        "metadata": {
-            "name": catalog_name,
-            "description": catalog_description,
-            "author": author,
-            "created": now,
-            "updated": now
-        },
+        "metadata": {"name": catalog_name, "description": catalog_description, "author": author, "created": now, "updated": now},
         "errors": {
             error_id: {
                 "id": error_id,
@@ -136,18 +107,16 @@ def _create_interactive_catalog(output_path: Path) -> None:
                 "suggestion": suggestion,
                 "context_lines": int(context_lines),
                 "next_errors": [],
-                "metadata": {
-                    "severity": severity
-                }
+                "metadata": {"severity": severity},
             }
-        }
+        },
     }
 
     # Create parent directory if needed
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Write catalog
-    with open(output_path, 'w') as f:
+    with open(output_path, "w") as f:
         yaml.dump(catalog, f, default_flow_style=False, sort_keys=False)
 
     logger.success(f"\nCatalog created: {output_path}")
@@ -181,13 +150,13 @@ def _display_next_steps(output_path: Path) -> None:
     logger.info("\n" + "=" * 60)
     logger.info("NEXT STEPS")
     logger.info("=" * 60)
-    logger.info(f"1. Review and edit the catalog:")
+    logger.info("1. Review and edit the catalog:")
     logger.info(f"   $ $EDITOR {output_path}")
     logger.info("")
-    logger.info(f"2. Validate your catalog:")
+    logger.info("2. Validate your catalog:")
     logger.info(f"   $ as-scan validate {output_path}")
     logger.info("")
-    logger.info(f"3. Run a scan:")
+    logger.info("3. Run a scan:")
     logger.info(f"   $ as-scan scan --catalog {output_path} --output ./results")
     logger.info("")
     logger.info("=" * 60)
@@ -198,23 +167,11 @@ def _display_next_steps(output_path: Path) -> None:
     "--output",
     type=click.Path(dir_okay=False, resolve_path=True),
     default="./error_catalog.yaml",
-    help="Output path for the sample catalog [default: ./error_catalog.yaml]"
+    help="Output path for the sample catalog [default: ./error_catalog.yaml]",
 )
-@click.option(
-    "--force",
-    is_flag=True,
-    help="Overwrite existing file if present"
-)
-@click.option(
-    "--interactive",
-    is_flag=True,
-    help="Create catalog interactively with questionary prompts"
-)
-@click.option(
-    "--sample",
-    is_flag=True,
-    help="Copy the sample catalog (default if not --interactive)"
-)
+@click.option("--force", is_flag=True, help="Overwrite existing file if present")
+@click.option("--interactive", is_flag=True, help="Create catalog interactively with questionary prompts")
+@click.option("--sample", is_flag=True, help="Copy the sample catalog (default if not --interactive)")
 def init(output, force, interactive, sample):
     """Create an error catalog.
 

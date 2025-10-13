@@ -10,7 +10,7 @@ Provides:
 
 import re
 from abc import ABC, abstractmethod
-from typing import List, Match as RegexMatch
+from re import Match as RegexMatch
 
 from src.domain.models import PatternMatcher, PatternType
 from src.matching.callable_loader import load_callable
@@ -40,7 +40,7 @@ class BasePatternMatcher(ABC):
         pass
 
     @abstractmethod
-    def find_all(self, text: str) -> List[RegexMatch]:
+    def find_all(self, text: str) -> list[RegexMatch]:
         """Find all occurrences of the pattern in text.
 
         Args:
@@ -72,7 +72,7 @@ class LiteralPatternMatcher(BasePatternMatcher):
         """
         return self.pattern.pattern in text
 
-    def find_all(self, text: str) -> List[RegexMatch]:
+    def find_all(self, text: str) -> list[RegexMatch]:
         """Find all occurrences of the literal pattern.
 
         Args:
@@ -144,7 +144,7 @@ class RegexPatternMatcher(BasePatternMatcher):
         """
         return self.regex.search(text) is not None
 
-    def find_all(self, text: str) -> List[RegexMatch]:
+    def find_all(self, text: str) -> list[RegexMatch]:
         """Find all regex matches in text.
 
         Args:
@@ -193,14 +193,11 @@ class CallablePatternMatcher(BasePatternMatcher):
         result = self.callable(text)
 
         if not isinstance(result, bool):
-            raise TypeError(
-                f"Callable {self.pattern.pattern} must return bool, "
-                f"got {type(result).__name__}"
-            )
+            raise TypeError(f"Callable {self.pattern.pattern} must return bool, " f"got {type(result).__name__}")
 
         return result
 
-    def find_all(self, text: str) -> List[RegexMatch]:
+    def find_all(self, text: str) -> list[RegexMatch]:
         """Find all matches using callable.
 
         Note: Callables that return bool cannot provide match positions,
@@ -212,10 +209,7 @@ class CallablePatternMatcher(BasePatternMatcher):
         Raises:
             NotImplementedError: Callables don't support find_all
         """
-        raise NotImplementedError(
-            "Callable pattern matchers cannot provide match positions. "
-            "Use match() method instead."
-        )
+        raise NotImplementedError("Callable pattern matchers cannot provide match positions. " "Use match() method instead.")
 
 
 class PatternMatcherFactory:

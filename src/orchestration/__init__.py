@@ -14,17 +14,16 @@ Main components:
 """
 
 from src.orchestration.helpers import (
-    get_file_hash,
     expand_fsspec_patterns,
+    get_error_definition,
+    get_file_hash,
     get_fingerprint,
     read_manifest,
     write_manifest,
-    get_error_definition,
 )
-
 from src.orchestration.scanners import (
-    scan_file_for_pattern,
     extract_matches_with_context,
+    scan_file_for_pattern,
 )
 
 __all__ = [

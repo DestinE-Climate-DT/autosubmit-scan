@@ -7,17 +7,17 @@ This module provides:
 - Error match building
 """
 
-from src.matching.pattern_matcher import (
-    BasePatternMatcher,
-    LiteralPatternMatcher,
-    RegexPatternMatcher,
-    CallablePatternMatcher,
-    PatternMatcherFactory,
-)
 from src.matching.callable_loader import load_callable, validate_callable_signature
-from src.matching.stream_reader import FileStream
 from src.matching.context_extractor import ContextExtractor, ContextResult
 from src.matching.match_builder import ErrorMatchBuilder
+from src.matching.pattern_matcher import (
+    BasePatternMatcher,
+    CallablePatternMatcher,
+    LiteralPatternMatcher,
+    PatternMatcherFactory,
+    RegexPatternMatcher,
+)
+from src.matching.stream_reader import FileStream
 
 __all__ = [
     "BasePatternMatcher",

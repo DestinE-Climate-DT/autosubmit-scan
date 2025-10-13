@@ -5,8 +5,9 @@ for generating reports in various formats (Markdown, HTML, plain text).
 """
 
 from pathlib import Path
-from typing import Dict, Any
-from jinja2 import Environment, FileSystemLoader, TemplateNotFound
+from typing import Any
+
+from jinja2 import Environment, FileSystemLoader
 
 
 class TemplateRenderer:
@@ -26,10 +27,10 @@ class TemplateRenderer:
             loader=FileSystemLoader(str(templates_dir)),
             autoescape=False,  # We control the output format
             trim_blocks=True,
-            lstrip_blocks=True
+            lstrip_blocks=True,
         )
 
-    def render(self, template_name: str, data: Dict[str, Any], output_path: str) -> None:
+    def render(self, template_name: str, data: dict[str, Any], output_path: str) -> None:
         """Render a template with data and write to file.
 
         Args:

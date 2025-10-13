@@ -3,8 +3,9 @@
 Extracts lines before and after a matched line for better error understanding.
 """
 
-from typing import List
+
 from pydantic import BaseModel
+
 from src.matching.stream_reader import FileStream
 
 
@@ -14,9 +15,9 @@ class ContextResult(BaseModel):
     Contains the matched line plus surrounding context.
     """
 
-    before: List[str]
+    before: list[str]
     matched_line: str
-    after: List[str]
+    after: list[str]
     line_number: int
 
     def get_full_text(self) -> str:
@@ -40,12 +41,7 @@ class ContextResult(BaseModel):
 class ContextExtractor:
     """Extract context around matched lines in files."""
 
-    def extract_context(
-        self,
-        file_uri: str,
-        line_number: int,
-        context_lines: int
-    ) -> ContextResult:
+    def extract_context(self, file_uri: str, line_number: int, context_lines: int) -> ContextResult:
         """Extract context around a specific line.
 
         Args:
@@ -104,17 +100,10 @@ class ContextExtractor:
 
         # Check if we found the matched line
         if matched_line is None:
-            raise ValueError(
-                f"Line number {line_number} is beyond the file length"
-            )
+            raise ValueError(f"Line number {line_number} is beyond the file length")
 
         # Trim before_lines to only keep the last context_lines entries
         if len(before_lines) > context_lines:
             before_lines = before_lines[-context_lines:]
 
-        return ContextResult(
-            before=before_lines,
-            matched_line=matched_line,
-            after=after_lines,
-            line_number=line_number
-        )
+        return ContextResult(before=before_lines, matched_line=matched_line, after=after_lines, line_number=line_number)

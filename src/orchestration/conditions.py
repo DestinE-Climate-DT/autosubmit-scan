@@ -16,12 +16,13 @@ Field access supports:
 """
 
 import re
-from typing import Any, Optional
-from src.domain.models import ConditionSpec, ConditionType, ErrorMatch, ErrorCatalog
+from typing import Any
+
+from src.domain.models import ConditionSpec, ConditionType, ErrorCatalog, ErrorMatch
 from src.matching.callable_loader import load_callable
 
 
-def get_field_value(obj: Any, path: str) -> Optional[Any]:
+def get_field_value(obj: Any, path: str) -> Any | None:
     """Get field value from object using dot notation and array indexing.
 
     Supports:
@@ -131,9 +132,7 @@ class ConditionEvaluator:
     - FIELD_REGEX: Regex matches field
     """
 
-    def evaluate(
-        self, condition: ConditionSpec, error_match: ErrorMatch, catalog: ErrorCatalog
-    ) -> bool:
+    def evaluate(self, condition: ConditionSpec, error_match: ErrorMatch, catalog: ErrorCatalog) -> bool:
         """Evaluate a condition against an error match.
 
         Args:
@@ -157,17 +156,13 @@ class ConditionEvaluator:
             # Vacuous truth: empty AND is True
             if not condition.conditions:
                 return True
-            return all(
-                self.evaluate(c, error_match, catalog) for c in condition.conditions
-            )
+            return all(self.evaluate(c, error_match, catalog) for c in condition.conditions)
 
         elif condition.type == ConditionType.OR:
             # Vacuous falsehood: empty OR is False
             if not condition.conditions:
                 return False
-            return any(
-                self.evaluate(c, error_match, catalog) for c in condition.conditions
-            )
+            return any(self.evaluate(c, error_match, catalog) for c in condition.conditions)
 
         elif condition.type == ConditionType.CUSTOM:
             return self._evaluate_custom(condition, error_match, catalog)
@@ -185,9 +180,7 @@ class ConditionEvaluator:
             # Unknown condition type, return False
             return False
 
-    def _evaluate_custom(
-        self, condition: ConditionSpec, error_match: ErrorMatch, catalog: ErrorCatalog
-    ) -> bool:
+    def _evaluate_custom(self, condition: ConditionSpec, error_match: ErrorMatch, catalog: ErrorCatalog) -> bool:
         """Evaluate CUSTOM condition by loading and executing callable.
 
         Args:
@@ -206,9 +199,7 @@ class ConditionEvaluator:
             # If callable fails to load or execute, return False
             return False
 
-    def _evaluate_field_equals(
-        self, condition: ConditionSpec, error_match: ErrorMatch
-    ) -> bool:
+    def _evaluate_field_equals(self, condition: ConditionSpec, error_match: ErrorMatch) -> bool:
         """Evaluate FIELD_EQUALS condition.
 
         Args:
@@ -223,9 +214,7 @@ class ConditionEvaluator:
             return False
         return field_value == condition.value
 
-    def _evaluate_field_contains(
-        self, condition: ConditionSpec, error_match: ErrorMatch
-    ) -> bool:
+    def _evaluate_field_contains(self, condition: ConditionSpec, error_match: ErrorMatch) -> bool:
         """Evaluate FIELD_CONTAINS condition.
 
         Args:
@@ -245,9 +234,7 @@ class ConditionEvaluator:
             # Field doesn't support 'in' operator
             return False
 
-    def _evaluate_field_regex(
-        self, condition: ConditionSpec, error_match: ErrorMatch
-    ) -> bool:
+    def _evaluate_field_regex(self, condition: ConditionSpec, error_match: ErrorMatch) -> bool:
         """Evaluate FIELD_REGEX condition.
 
         Args:

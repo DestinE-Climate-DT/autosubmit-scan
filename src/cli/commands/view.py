@@ -13,10 +13,7 @@ from src.reporting.tui import ErrorReportApp
 
 
 @click.command()
-@click.argument(
-    "report_path",
-    type=click.Path(exists=True, dir_okay=False, resolve_path=True)
-)
+@click.argument("report_path", type=click.Path(exists=True, dir_okay=False, resolve_path=True))
 def view(report_path):
     """Launch TUI to view error report interactively.
 
@@ -51,8 +48,9 @@ def view(report_path):
 
         # Try to validate it's a valid JSON
         import json
+
         try:
-            with open(report_file, "r") as f:
+            with open(report_file) as f:
                 data = json.load(f)
 
             # Check if it looks like a report

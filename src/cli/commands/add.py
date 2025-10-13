@@ -4,8 +4,8 @@ Adds a new error definition to an existing catalog interactively.
 """
 
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
-from datetime import datetime, timezone
 
 import click
 import questionary
@@ -15,18 +15,16 @@ from prompt_toolkit.shortcuts import prompt
 from pydantic import ValidationError
 
 from src.domain.catalog import load_catalog
+
 from ..completion import GlobPatternCompleter
 
 
 @click.command()
-@click.argument(
-    "catalog",
-    type=click.Path(exists=True, dir_okay=False, resolve_path=True)
-)
+@click.argument("catalog", type=click.Path(exists=True, dir_okay=False, resolve_path=True))
 @click.option(
     "--output",
     type=click.Path(dir_okay=False, resolve_path=True),
-    help="Save to a different file (default: update catalog in-place)"
+    help="Save to a different file (default: update catalog in-place)",
 )
 def add(catalog, output):
     """Add a new error definition to an existing catalog.
@@ -78,7 +76,7 @@ def add(catalog, output):
         while True:
             error_id = questionary.text(
                 "Error ID (unique identifier, e.g., 'oom_error'):",
-                validate=lambda text: len(text) > 0 and text.replace("_", "").isalnum()
+                validate=lambda text: len(text) > 0 and text.replace("_", "").isalnum(),
             ).ask()
 
             if error_id in existing_ids:
@@ -92,10 +90,7 @@ def add(catalog, output):
                 break
 
         # Pattern type
-        pattern_type = questionary.select(
-            "Pattern type:",
-            choices=["literal", "regex", "callable"]
-        ).ask()
+        pattern_type = questionary.select("Pattern type:", choices=["literal", "regex", "callable"]).ask()
 
         # Pattern value with smart defaults
         if pattern_type == "literal":
@@ -105,10 +100,7 @@ def add(catalog, output):
         else:
             default_pattern = "module:function"
 
-        pattern_value = questionary.text(
-            f"Pattern ({pattern_type}):",
-            default=default_pattern
-        ).ask()
+        pattern_value = questionary.text(f"Pattern ({pattern_type}):", default=default_pattern).ask()
 
         # File URIs with tab completion
         logger.info("\nSpecify files to scan (use Tab for completion):")
@@ -125,7 +117,7 @@ def add(catalog, output):
                     f"\nFile URI #{len(files) + 1}: ",
                     completer=completer,
                     complete_while_typing=False,
-                    default="" if files else "ssh://"
+                    default="" if files else "ssh://",
                 )
             except KeyboardInterrupt:
                 raise
@@ -142,35 +134,21 @@ def add(catalog, output):
             sys.exit(1)
 
         # Error metadata
-        meaning = questionary.text(
-            "\nError meaning:",
-            default="Critical error detected"
-        ).ask()
+        meaning = questionary.text("\nError meaning:", default="Critical error detected").ask()
 
-        suggestion = questionary.text(
-            "Suggested action:",
-            default="Review logs and take appropriate action"
-        ).ask()
+        suggestion = questionary.text("Suggested action:", default="Review logs and take appropriate action").ask()
 
         context_lines = questionary.text(
-            "Context lines (before/after match):",
-            default="5",
-            validate=lambda text: text.isdigit() and int(text) >= 0
+            "Context lines (before/after match):", default="5", validate=lambda text: text.isdigit() and int(text) >= 0
         ).ask()
 
-        severity = questionary.select(
-            "Severity:",
-            choices=["low", "medium", "high", "critical"]
-        ).ask()
+        severity = questionary.select("Severity:", choices=["low", "medium", "high", "critical"]).ask()
 
         # Build pattern dict
         pattern_dict = {"type": pattern_type, "pattern": pattern_value}
         if pattern_type == "regex":
             # Ask about regex flags
-            use_ignorecase = questionary.confirm(
-                "Use case-insensitive matching?",
-                default=True
-            ).ask()
+            use_ignorecase = questionary.confirm("Use case-insensitive matching?", default=True).ask()
             if use_ignorecase:
                 pattern_dict["flags"] = ["IGNORECASE"]
 
@@ -183,20 +161,18 @@ def add(catalog, output):
             "suggestion": suggestion,
             "context_lines": int(context_lines),
             "next_errors": [],
-            "metadata": {
-                "severity": severity
-            }
+            "metadata": {"severity": severity},
         }
 
         # Load raw YAML to preserve structure and comments
-        with open(catalog_path, 'r') as f:
+        with open(catalog_path) as f:
             catalog_dict = yaml.safe_load(f)
 
         # Add new error
         catalog_dict["errors"][error_id] = new_error
 
         # Update timestamp
-        catalog_dict["metadata"]["updated"] = datetime.now(timezone.utc).isoformat()
+        catalog_dict["metadata"]["updated"] = datetime.now(UTC).isoformat()
 
         # Determine output path
         output_path = Path(output) if output else catalog_path
@@ -214,7 +190,7 @@ def add(catalog, output):
 
         # Write updated catalog
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(output_path, 'w') as f:
+        with open(output_path, "w") as f:
             yaml.dump(catalog_dict, f, default_flow_style=False, sort_keys=False)
 
         logger.success(f"\n✓ Added error '{error_id}' to catalog")
@@ -225,7 +201,7 @@ def add(catalog, output):
         logger.info("SUMMARY")
         logger.info("=" * 60)
         logger.info(f"Catalog now contains {len(catalog_dict['errors'])} error definition(s):")
-        for err_id in catalog_dict['errors'].keys():
+        for err_id in catalog_dict["errors"].keys():
             marker = "NEW" if err_id == error_id else ""
             logger.info(f"  - {err_id} {marker}")
         logger.info("=" * 60)

@@ -152,6 +152,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/rpds-py-0.27.1-py312h868fb18_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/ruamel.yaml-0.18.15-py312h4c3975b_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/ruamel.yaml.clib-0.2.12-py312h4c3975b_1.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-64/ruff-0.8.6-py312h2156523_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/s3fs-2025.9.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/s3transfer-0.13.1-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/semver-3.0.4-pyhd8ed1ab_0.conda
@@ -336,6 +337,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/rpds-py-0.27.1-py312h6f58b40_1.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/ruamel.yaml-0.18.15-py312h4409184_1.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/ruamel.yaml.clib-0.2.12-py312h163523d_1.conda
+      - conda: https://conda.anaconda.org/conda-forge/osx-arm64/ruff-0.8.6-py312h5d18b81_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/s3fs-2025.9.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/s3transfer-0.13.1-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/semver-3.0.4-pyhd8ed1ab_0.conda
@@ -3190,6 +3192,40 @@ packages:
   - pkg:pypi/ruamel-yaml-clib?source=hash-mapping
   size: 116629
   timestamp: 1756829016061
+- conda: https://conda.anaconda.org/conda-forge/linux-64/ruff-0.8.6-py312h2156523_0.conda
+  sha256: 5da6e2380da29453c6fc86bd7fad879fd302785a37c5cb9bda7a311c967d7181
+  md5: 284282b754028b3271019713669aa23c
+  depends:
+  - __glibc >=2.17,<3.0.a0
+  - libgcc >=13
+  - libstdcxx >=13
+  - python >=3.12,<3.13.0a0
+  - python_abi 3.12.* *_cp312
+  constrains:
+  - __glibc >=2.17
+  license: MIT
+  license_family: MIT
+  purls:
+  - pkg:pypi/ruff?source=hash-mapping
+  size: 7974925
+  timestamp: 1736040705308
+- conda: https://conda.anaconda.org/conda-forge/osx-arm64/ruff-0.8.6-py312h5d18b81_0.conda
+  sha256: 5ccbc7575db8c62d359d15e4e886d8ad0c6c97137e1f1b19d0a69edc1b5f654b
+  md5: 4159a3e90554603a091727cedfef7ddb
+  depends:
+  - __osx >=11.0
+  - libcxx >=18
+  - python >=3.12,<3.13.0a0
+  - python >=3.12,<3.13.0a0 *_cpython
+  - python_abi 3.12.* *_cp312
+  constrains:
+  - __osx >=11.0
+  license: MIT
+  license_family: MIT
+  purls:
+  - pkg:pypi/ruff?source=hash-mapping
+  size: 7031082
+  timestamp: 1736041179007
 - conda: https://conda.anaconda.org/conda-forge/noarch/s3fs-2025.9.0-pyhd8ed1ab_0.conda
   sha256: c151f2d349f65f8524dec1adc72e408ac2d1bf75730a13ef3d0526fa3be0fd3a
   md5: 71f1004802862a4c3c06817d93ca41db

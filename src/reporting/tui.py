@@ -6,12 +6,12 @@ with hierarchical tree view and detailed information panels.
 
 import json
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any
 
 from textual.app import App, ComposeResult
-from textual.widgets import Tree, Static, Footer, Header
-from textual.containers import Container, Horizontal
 from textual.binding import Binding
+from textual.containers import Container, Horizontal
+from textual.widgets import Footer, Header, Static, Tree
 
 
 class ErrorReportApp(App):
@@ -40,11 +40,11 @@ class ErrorReportApp(App):
         """
         super().__init__()
         self.report_path = report_path
-        self.report_data: Dict[str, Any] = {}
+        self.report_data: dict[str, Any] = {}
 
     def on_mount(self) -> None:
         """Load report data when app mounts."""
-        with open(self.report_path, "r", encoding="utf-8") as f:
+        with open(self.report_path, encoding="utf-8") as f:
             self.report_data = json.load(f)
 
         # Populate tree with report data
@@ -62,10 +62,7 @@ class ErrorReportApp(App):
             yield tree
 
             # Right side: Detail panel
-            yield Container(
-                Static("Select an error to view details", id="detail"),
-                id="detail-panel"
-            )
+            yield Container(Static("Select an error to view details", id="detail"), id="detail-panel")
 
         yield Footer()
 
@@ -79,7 +76,7 @@ class ErrorReportApp(App):
             return
 
         # Group matches by error type
-        errors_by_type: Dict[str, list] = {}
+        errors_by_type: dict[str, list] = {}
         for match in self.report_data["hasPart"]:
             error_id = match.get("errorDefinition", "unknown")
             if error_id not in errors_by_type:
@@ -91,7 +88,7 @@ class ErrorReportApp(App):
             type_node = tree.root.add(f"{error_type} ({len(matches)} matches)")
 
             # Group matches by file
-            files: Dict[str, list] = {}
+            files: dict[str, list] = {}
             for match in matches:
                 file_uri = match.get("url", "unknown")
                 if file_uri not in files:
@@ -128,7 +125,7 @@ class ErrorReportApp(App):
         detail_panel = self.query_one("#detail", Static)
         detail_panel.update(detail_text)
 
-    def _format_match_details(self, match: Dict[str, Any]) -> str:
+    def _format_match_details(self, match: dict[str, Any]) -> str:
         """Format match details for display.
 
         Args:

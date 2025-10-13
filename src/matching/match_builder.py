@@ -4,7 +4,7 @@ Builds ErrorMatch objects from error definitions and context results.
 """
 
 from datetime import datetime
-from typing import Dict, Any
+from typing import Any
 
 from src.domain.models import ErrorDefinition, ErrorMatch
 from src.matching.context_extractor import ContextResult
@@ -20,7 +20,7 @@ class ErrorMatchBuilder:
         line_number: int,
         matched_text: str,
         context: ContextResult,
-        metadata: Dict[str, Any] = None
+        metadata: dict[str, Any] = None,
     ) -> ErrorMatch:
         """Build an ErrorMatch from error definition and context.
 
@@ -61,5 +61,5 @@ class ErrorMatchBuilder:
             context_before=context.before,
             context_after=context.after,
             timestamp=datetime.utcnow(),
-            metadata=metadata
+            metadata=metadata,
         )

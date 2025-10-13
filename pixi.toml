@@ -45,6 +45,9 @@ pytest-cov = ">=6.0.0,<7"
 pytest-xdist = ">=3.6.0,<4"
 pytest-timeout = ">=2.3.0,<3"
 
+# Development dependencies
+ruff = ">=0.8.0,<0.9"
+
 # Remote protocol dependencies
 boto3 = ">=1.35.0,<2"
 s3fs = ">=2024.9.0"

@@ -3,9 +3,10 @@
 Generates and displays the Snakemake workflow DAG (Directed Acyclic Graph).
 """
 
-import sys
 import subprocess
+import sys
 import tempfile
+from collections import defaultdict
 from pathlib import Path
 
 import click
@@ -14,7 +15,6 @@ from loguru import logger
 from pydantic import ValidationError
 
 from src.domain.catalog import load_catalog
-from collections import defaultdict
 
 
 def generate_execution_graph(results_dir: Path) -> str:
@@ -78,17 +78,17 @@ def generate_execution_graph(results_dir: Path) -> str:
     # Generate DOT graph
     lines = []
     lines.append("digraph execution_dag {")
-    lines.append('    graph[bgcolor=white, margin=0, rankdir=TB];')
-    lines.append('    node[shape=box, style=rounded, fontname=sans, fontsize=10, penwidth=2];')
-    lines.append('    edge[penwidth=2, color=grey];')
-    lines.append('')
+    lines.append("    graph[bgcolor=white, margin=0, rankdir=TB];")
+    lines.append("    node[shape=box, style=rounded, fontname=sans, fontsize=10, penwidth=2];")
+    lines.append("    edge[penwidth=2, color=grey];")
+    lines.append("")
 
     node_id = 0
     node_map = {}
 
     # Create nodes for each job type
     for job_name, count in sorted(job_counts.items()):
-        job_type = job_name.split('_')[0]
+        job_type = job_name.split("_")[0]
 
         if count > 1:
             label = f"{job_name}\\n({count} jobs)"
@@ -97,45 +97,45 @@ def generate_execution_graph(results_dir: Path) -> str:
 
         # Color by job type
         colors = {
-            'discover': '0.15 0.6 0.85',
-            'fingerprint': '0.30 0.6 0.85',
-            'match': '0.45 0.6 0.85',
-            'filter': '0.60 0.6 0.85',
-            'extract': '0.75 0.6 0.85',
+            "discover": "0.15 0.6 0.85",
+            "fingerprint": "0.30 0.6 0.85",
+            "match": "0.45 0.6 0.85",
+            "filter": "0.60 0.6 0.85",
+            "extract": "0.75 0.6 0.85",
         }
-        color = colors.get(job_type, '0.50 0.6 0.85')
+        color = colors.get(job_type, "0.50 0.6 0.85")
 
         lines.append(f'    {node_id}[label="{label}", color="{color}", style="rounded,filled", fillcolor="white"];')
         node_map[job_name] = node_id
         node_id += 1
 
-    lines.append('')
+    lines.append("")
 
     # Create edges (simplified workflow)
     for job_name in sorted(job_counts.keys()):
-        if job_name.startswith('discover_files_'):
-            error_id = job_name.replace('discover_files_', '')
-            finger_job = f'fingerprint_file_{error_id}'
+        if job_name.startswith("discover_files_"):
+            error_id = job_name.replace("discover_files_", "")
+            finger_job = f"fingerprint_file_{error_id}"
             if finger_job in node_map:
-                lines.append(f'    {node_map[job_name]} -> {node_map[finger_job]};')
+                lines.append(f"    {node_map[job_name]} -> {node_map[finger_job]};")
 
-        elif job_name.startswith('fingerprint_file_'):
-            error_id = job_name.replace('fingerprint_file_', '')
-            match_job = f'match_pattern_{error_id}'
+        elif job_name.startswith("fingerprint_file_"):
+            error_id = job_name.replace("fingerprint_file_", "")
+            match_job = f"match_pattern_{error_id}"
             if match_job in node_map:
-                lines.append(f'    {node_map[job_name]} -> {node_map[match_job]};')
+                lines.append(f"    {node_map[job_name]} -> {node_map[match_job]};")
 
-        elif job_name.startswith('match_pattern_'):
-            error_id = job_name.replace('match_pattern_', '')
-            filter_job = f'filter_matches_{error_id}'
+        elif job_name.startswith("match_pattern_"):
+            error_id = job_name.replace("match_pattern_", "")
+            filter_job = f"filter_matches_{error_id}"
             if filter_job in node_map:
-                lines.append(f'    {node_map[job_name]} -> {node_map[filter_job]};')
+                lines.append(f"    {node_map[job_name]} -> {node_map[filter_job]};")
 
-        elif job_name.startswith('filter_matches_'):
-            error_id = job_name.replace('filter_matches_', '')
-            extract_job = f'extract_context_{error_id}'
+        elif job_name.startswith("filter_matches_"):
+            error_id = job_name.replace("filter_matches_", "")
+            extract_job = f"extract_context_{error_id}"
             if extract_job in node_map:
-                lines.append(f'    {node_map[job_name]} -> {node_map[extract_job]};')
+                lines.append(f"    {node_map[job_name]} -> {node_map[extract_job]};")
 
     lines.append("}")
 
@@ -150,36 +150,29 @@ def generate_execution_graph(results_dir: Path) -> str:
     "--catalog",
     required=True,
     type=click.Path(exists=True, dir_okay=False, resolve_path=True),
-    help="Path to error catalog YAML file"
+    help="Path to error catalog YAML file",
 )
 @click.option(
-    "--output",
-    type=click.Path(dir_okay=False, resolve_path=True),
-    help="Save DAG to file (supports .dot, .png, .pdf, .svg)"
+    "--output", type=click.Path(dir_okay=False, resolve_path=True), help="Save DAG to file (supports .dot, .png, .pdf, .svg)"
 )
 @click.option(
     "--format",
     type=click.Choice(["dot", "png", "pdf", "svg"], case_sensitive=False),
     default="dot",
-    help="Output format [default: dot]"
+    help="Output format [default: dot]",
 )
 @click.option(
     "--graph-type",
     type=click.Choice(["dag", "rulegraph", "filegraph", "execution", "all"], case_sensitive=False),
     default="rulegraph",
-    help="Graph type: dag (all jobs), rulegraph (rules only), filegraph (file flow), execution (from results), all (generate all) [default: rulegraph]"
+    help="Graph type: dag (all jobs), rulegraph (rules only), filegraph (file flow), execution (from results), all (generate all) [default: rulegraph]",
 )
 @click.option(
     "--results-dir",
     type=click.Path(exists=True, file_okay=False, resolve_path=True),
-    help="Results directory for execution graph (required for --graph-type execution)"
+    help="Results directory for execution graph (required for --graph-type execution)",
 )
-@click.option(
-    "--open",
-    "open_file",
-    is_flag=True,
-    help="Open the generated file after creation (requires --output)"
-)
+@click.option("--open", "open_file", is_flag=True, help="Open the generated file after creation (requires --output)")
 def dag(catalog, output, format, graph_type, results_dir, open_file):
     """Visualize workflow DAG (Directed Acyclic Graph).
 
@@ -240,7 +233,7 @@ def dag(catalog, output, format, graph_type, results_dir, open_file):
                     "results": str(tmp_path / "results"),
                     "aggregated": str(tmp_path / "aggregated"),
                     "railway": str(tmp_path / "railway"),
-                }
+                },
             }
 
             # Write temporary config file
@@ -291,12 +284,7 @@ def dag(catalog, output, format, graph_type, results_dir, open_file):
                             sys.exit(1)
                 else:
                     # Build Snakemake command for graph generation
-                    cmd = [
-                        "snakemake",
-                        "--snakefile", str(snakefile_path),
-                        "--configfile", str(config_file),
-                        f"--{gtype}"
-                    ]
+                    cmd = ["snakemake", "--snakefile", str(snakefile_path), "--configfile", str(config_file), f"--{gtype}"]
 
                     logger.info(f"Generating workflow {gtype}...")
                     logger.debug(f"Executing: {' '.join(cmd)}")
@@ -331,7 +319,7 @@ def dag(catalog, output, format, graph_type, results_dir, open_file):
 
                     # Determine format from file extension if not specified
                     current_format = format
-                    if current_format == "dot" and output_path.suffix in ['.png', '.pdf', '.svg']:
+                    if current_format == "dot" and output_path.suffix in [".png", ".pdf", ".svg"]:
                         current_format = output_path.suffix[1:]  # Remove the dot
 
                     if current_format == "dot":
@@ -349,18 +337,9 @@ def dag(catalog, output, format, graph_type, results_dir, open_file):
 
                             # Convert DOT to specified format
                             output_path.parent.mkdir(parents=True, exist_ok=True)
-                            convert_cmd = [
-                                "dot",
-                                f"-T{current_format}",
-                                "-o", str(output_path)
-                            ]
+                            convert_cmd = ["dot", f"-T{current_format}", "-o", str(output_path)]
 
-                            convert_result = subprocess.run(
-                                convert_cmd,
-                                input=dot_content,
-                                text=True,
-                                capture_output=True
-                            )
+                            convert_result = subprocess.run(convert_cmd, input=dot_content, text=True, capture_output=True)
 
                             if convert_result.returncode != 0:
                                 logger.error(f"Failed to convert {gtype} to {current_format}")

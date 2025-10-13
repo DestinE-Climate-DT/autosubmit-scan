@@ -7,17 +7,15 @@ from Iteration 2 for use in Snakemake rules:
 - extract_matches_with_context: Extract full ErrorMatch objects with context
 """
 
-from typing import List
-from datetime import datetime
 
 from src.domain.models import ErrorDefinition, ErrorMatch, PatternMatcher
-from src.matching.stream_reader import FileStream
-from src.matching.pattern_matcher import PatternMatcherFactory
 from src.matching.context_extractor import ContextExtractor
 from src.matching.match_builder import ErrorMatchBuilder
+from src.matching.pattern_matcher import PatternMatcherFactory
+from src.matching.stream_reader import FileStream
 
 
-def scan_file_for_pattern(file_uri: str, pattern: PatternMatcher) -> List[int]:
+def scan_file_for_pattern(file_uri: str, pattern: PatternMatcher) -> list[int]:
     """Scan a file and return line numbers where pattern matches.
 
     This is an atomic operation used in the pattern matching rule.
@@ -55,9 +53,9 @@ def scan_file_for_pattern(file_uri: str, pattern: PatternMatcher) -> List[int]:
 
 def extract_matches_with_context(
     file_uri: str,
-    line_numbers: List[int],
+    line_numbers: list[int],
     error_def: ErrorDefinition,
-) -> List[ErrorMatch]:
+) -> list[ErrorMatch]:
     """Extract full ErrorMatch objects with context for matched lines.
 
     This is an atomic operation used in the context extraction rule.

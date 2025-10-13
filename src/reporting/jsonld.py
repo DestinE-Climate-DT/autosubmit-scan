@@ -6,9 +6,9 @@ JSON-LD format following Schema.org conventions with custom extensions.
 
 import uuid
 from datetime import datetime
-from typing import Dict, List, Any
+from typing import Any
 
-from src.domain.models import ErrorMatch, ErrorCatalog
+from src.domain.models import ErrorCatalog, ErrorMatch
 
 
 class ReportGenerator:
@@ -18,12 +18,7 @@ class ReportGenerator:
     error_scan extensions.
     """
 
-    def generate_report(
-        self,
-        matches: List[ErrorMatch],
-        catalog: ErrorCatalog,
-        metadata: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def generate_report(self, matches: list[ErrorMatch], catalog: ErrorCatalog, metadata: dict[str, Any]) -> dict[str, Any]:
         """Generate a JSON-LD report from error matches.
 
         Args:
@@ -48,30 +43,23 @@ class ReportGenerator:
 
         # Build author information
         author_info = metadata.get("author", {})
-        author = {
-            "@type": "Person",
-            "name": author_info.get("name", "Unknown"),
-            "email": author_info.get("email", "")
-        }
+        author = {"@type": "Person", "name": author_info.get("name", "Unknown"), "email": author_info.get("email", "")}
 
         # Build complete report
         report = {
-            "@context": {
-                "@vocab": "https://schema.org/",
-                "error_scan": "https://destine.example/error-scan/schema#"
-            },
+            "@context": {"@vocab": "https://schema.org/", "error_scan": "https://destine.example/error-scan/schema#"},
             "@type": "ErrorReport",
             "@id": report_id,
             "version": "1.0.0",
             "dateCreated": now,
             "author": author,
             "summary": summary,
-            "hasPart": jsonld_matches
+            "hasPart": jsonld_matches,
         }
 
         return report
 
-    def _calculate_summary(self, matches: List[ErrorMatch]) -> Dict[str, Any]:
+    def _calculate_summary(self, matches: list[ErrorMatch]) -> dict[str, Any]:
         """Calculate summary statistics from matches.
 
         Args:
@@ -81,12 +69,7 @@ class ReportGenerator:
             Dictionary with summary statistics
         """
         if not matches:
-            return {
-                "totalMatches": 0,
-                "errorTypes": 0,
-                "filesScanned": 0,
-                "hostsScanned": []
-            }
+            return {"totalMatches": 0, "errorTypes": 0, "filesScanned": 0, "hostsScanned": []}
 
         # Count unique error types
         error_types = set(m.error_id for m in matches)
@@ -104,14 +87,10 @@ class ReportGenerator:
             "totalMatches": len(matches),
             "errorTypes": len(error_types),
             "filesScanned": len(files),
-            "hostsScanned": sorted(list(hosts))
+            "hostsScanned": sorted(list(hosts)),
         }
 
-    def _match_to_jsonld(
-        self,
-        match: ErrorMatch,
-        catalog: ErrorCatalog
-    ) -> Dict[str, Any]:
+    def _match_to_jsonld(self, match: ErrorMatch, catalog: ErrorCatalog) -> dict[str, Any]:
         """Convert an ErrorMatch to JSON-LD format.
 
         Args:
@@ -128,24 +107,13 @@ class ReportGenerator:
 
         # Build about section with error definition details
         if error_def:
-            about = {
-                "@type": "CreativeWork",
-                "headline": error_def.meaning,
-                "description": error_def.suggestion
-            }
+            about = {"@type": "CreativeWork", "headline": error_def.meaning, "description": error_def.suggestion}
         else:
             # Fallback for missing error definitions
-            about = {
-                "@type": "CreativeWork",
-                "headline": f"Error {match.error_id}",
-                "description": "No description available"
-            }
+            about = {"@type": "CreativeWork", "headline": f"Error {match.error_id}", "description": "No description available"}
 
         # Build context
-        context = {
-            "before": match.context_before,
-            "after": match.context_after
-        }
+        context = {"before": match.context_before, "after": match.context_after}
 
         # Convert timestamp to ISO format
         timestamp_iso = match.timestamp.isoformat() + "Z"
@@ -159,12 +127,12 @@ class ReportGenerator:
             "text": match.matched_text,
             "dateFound": timestamp_iso,
             "about": about,
-            "context": context
+            "context": context,
         }
 
         return jsonld_match
 
-    def group_by_error(self, matches: List[ErrorMatch]) -> Dict[str, List[ErrorMatch]]:
+    def group_by_error(self, matches: list[ErrorMatch]) -> dict[str, list[ErrorMatch]]:
         """Group matches by error_id.
 
         Args:
@@ -173,7 +141,7 @@ class ReportGenerator:
         Returns:
             Dictionary mapping error_id to list of matches
         """
-        grouped: Dict[str, List[ErrorMatch]] = {}
+        grouped: dict[str, list[ErrorMatch]] = {}
 
         for match in matches:
             if match.error_id not in grouped:
@@ -182,7 +150,7 @@ class ReportGenerator:
 
         return grouped
 
-    def group_by_file(self, matches: List[ErrorMatch]) -> Dict[str, List[ErrorMatch]]:
+    def group_by_file(self, matches: list[ErrorMatch]) -> dict[str, list[ErrorMatch]]:
         """Group matches by file_uri, sorted by line_number.
 
         Args:
@@ -191,7 +159,7 @@ class ReportGenerator:
         Returns:
             Dictionary mapping file_uri to sorted list of matches
         """
-        grouped: Dict[str, List[ErrorMatch]] = {}
+        grouped: dict[str, list[ErrorMatch]] = {}
 
         for match in matches:
             if match.file_uri not in grouped:

@@ -3,35 +3,28 @@
 Exports error reports using Jinja2 templates.
 """
 
-import sys
 import json
-from pathlib import Path
+import sys
 from datetime import datetime
+from pathlib import Path
 
 import click
-from loguru import logger
 from jinja2 import TemplateNotFound
+from loguru import logger
 
 from src.reporting.templates import TemplateRenderer
-from src.domain.models import ErrorMatch
-from src.domain.catalog import jsonld_to_catalog
 
 
 @click.command()
-@click.argument(
-    "report_path",
-    type=click.Path(exists=True, dir_okay=False, resolve_path=True)
-)
+@click.argument("report_path", type=click.Path(exists=True, dir_okay=False, resolve_path=True))
 @click.option(
     "--template",
     type=click.Choice(["markdown", "html", "text"], case_sensitive=False),
     default="markdown",
-    help="Output template format [default: markdown]"
+    help="Output template format [default: markdown]",
 )
 @click.option(
-    "--output",
-    type=click.Path(dir_okay=False, resolve_path=True),
-    help="Output file path (default: report.<extension>)"
+    "--output", type=click.Path(dir_okay=False, resolve_path=True), help="Output file path (default: report.<extension>)"
 )
 def export(report_path, template, output):
     """Export error report using a template.
@@ -59,7 +52,7 @@ def export(report_path, template, output):
         # Load report
         logger.info(f"Loading report from {report_path}")
         try:
-            with open(report_file, "r") as f:
+            with open(report_file) as f:
                 report_data = json.load(f)
         except json.JSONDecodeError as e:
             logger.error(f"Invalid JSON file: {e}")
@@ -72,21 +65,13 @@ def export(report_path, template, output):
 
         # Determine output path
         if output is None:
-            extensions = {
-                "markdown": "md",
-                "html": "html",
-                "text": "txt"
-            }
+            extensions = {"markdown": "md", "html": "html", "text": "txt"}
             output = report_file.parent / f"report.{extensions[template]}"
         else:
             output = Path(output)
 
         # Determine template file
-        template_files = {
-            "markdown": "report.md.j2",
-            "html": "report.html.j2",
-            "text": "summary.txt.j2"
-        }
+        template_files = {"markdown": "report.md.j2", "html": "report.html.j2", "text": "summary.txt.j2"}
         template_file = template_files[template]
 
         logger.info(f"Using template: {template_file}")
@@ -106,7 +91,7 @@ def export(report_path, template, output):
                     "context_before": match.get("context", {}).get("before", []),
                     "context_after": match.get("context", {}).get("after", []),
                     "meaning": match.get("about", {}).get("headline", ""),
-                    "suggestion": match.get("about", {}).get("description", "")
+                    "suggestion": match.get("about", {}).get("description", ""),
                 }
                 matches_data.append(match_info)
 
@@ -127,8 +112,8 @@ def export(report_path, template, output):
             "metadata": {
                 "generated_at": datetime.now().isoformat(),
                 "report_date": report_data.get("dateCreated", ""),
-                "author": report_data.get("author", {}).get("name", "Unknown")
-            }
+                "author": report_data.get("author", {}).get("name", "Unknown"),
+            },
         }
 
         # Render template

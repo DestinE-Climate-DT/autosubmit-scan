@@ -8,11 +8,12 @@ Provides memory-efficient line-by-line reading for files accessed via:
 - FTP (ftp://)
 """
 
-import fsspec
-from typing import Iterator, Tuple, List, Optional
+from collections.abc import Iterator
 from urllib.parse import urlparse
 
-from src.cli.completion import normalize_uri_for_fsspec, get_fsspec_filesystem
+import fsspec
+
+from src.cli.completion import get_fsspec_filesystem, normalize_uri_for_fsspec
 
 
 class FileStream:
@@ -82,19 +83,19 @@ class FileStream:
 
             # Parse URI to extract path
             parsed = urlparse(normalized_uri)
-            protocol_part = parsed.scheme or 'file'
+            protocol_part = parsed.scheme or "file"
 
             # Extract the path component
-            if protocol_part in ('ssh', 'sftp', 's3'):
+            if protocol_part in ("ssh", "sftp", "s3"):
                 file_path = parsed.path
-            elif protocol_part == 'file':
+            elif protocol_part == "file":
                 file_path = parsed.path
             else:
                 # Local path without protocol
                 file_path = normalized_uri
 
             # Open file with filesystem
-            opened_file = fs.open(file_path, mode='r', encoding='utf-8')
+            opened_file = fs.open(file_path, mode="r", encoding="utf-8")
 
             return cls(opened_file, uri, strip_newlines)
 
@@ -103,7 +104,7 @@ class FileStream:
         except PermissionError as e:
             raise PermissionError(f"Permission denied: {uri}") from e
 
-    def read_lines(self) -> Iterator[Tuple[int, str]]:
+    def read_lines(self) -> Iterator[tuple[int, str]]:
         """Read file line by line.
 
         Yields:
@@ -123,16 +124,16 @@ class FileStream:
             # Close and reopen the file
             self.close()
             normalized_uri = normalize_uri_for_fsspec(self.uri)
-            self.file_handle = fsspec.open(normalized_uri, mode='r', encoding='utf-8').open()
+            self.file_handle = fsspec.open(normalized_uri, mode="r", encoding="utf-8").open()
 
         line_number = 1
         for line in self.file_handle:
             if self.strip_newlines:
-                line = line.rstrip('\n\r')
+                line = line.rstrip("\n\r")
             yield (line_number, line)
             line_number += 1
 
-    def read_lines_range(self, start: int, end: int) -> List[str]:
+    def read_lines_range(self, start: int, end: int) -> list[str]:
         """Read a specific range of lines.
 
         Args:
@@ -153,9 +154,7 @@ class FileStream:
             raise ValueError(f"Start line must be >= 1, got {start}")
 
         if start > end:
-            raise ValueError(
-                f"Start line ({start}) cannot be greater than end line ({end})"
-            )
+            raise ValueError(f"Start line ({start}) cannot be greater than end line ({end})")
 
         result = []
 

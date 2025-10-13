@@ -7,8 +7,8 @@ This module provides:
 - Textual TUI for interactive viewing
 """
 
-from src.reporting.jsonld import ReportGenerator
 from src.reporting.aggregator import ReportAggregator
+from src.reporting.jsonld import ReportGenerator
 from src.reporting.templates import TemplateRenderer
 
 __all__ = [

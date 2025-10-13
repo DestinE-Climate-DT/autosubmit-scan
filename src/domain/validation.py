@@ -7,7 +7,7 @@ This module provides custom validators for:
 """
 
 import re
-from typing import Any
+
 import semver
 
 
@@ -25,7 +25,7 @@ def validate_semver(version: str) -> str:
     """
     try:
         # Try new API first (semver 3.x)
-        if hasattr(semver, 'Version'):
+        if hasattr(semver, "Version"):
             semver.Version.parse(version)
         else:
             # Fall back to older API (semver 2.x)
@@ -113,8 +113,7 @@ def validate_uri(uri: str) -> str:
 
     # If we get here, it's not a recognized format
     raise ValueError(
-        f"Invalid URI: {uri}. Must be a valid fsspec URI "
-        "(s3://, ssh://, sftp://, ftp://, file:///) or absolute path (/)."
+        f"Invalid URI: {uri}. Must be a valid fsspec URI " "(s3://, ssh://, sftp://, ftp://, file:///) or absolute path (/)."
     )
 
 
@@ -139,39 +138,24 @@ def validate_callable_string(callable_str: str) -> str:
         raise ValueError("Callable string cannot be empty")
 
     if ":" not in callable_str:
-        raise ValueError(
-            f"Invalid callable format: {callable_str}. "
-            "Must be in 'module:function' format"
-        )
+        raise ValueError(f"Invalid callable format: {callable_str}. " "Must be in 'module:function' format")
 
     parts = callable_str.split(":")
     if len(parts) != 2:
-        raise ValueError(
-            f"Invalid callable format: {callable_str}. "
-            "Must contain exactly one ':' separator"
-        )
+        raise ValueError(f"Invalid callable format: {callable_str}. " "Must contain exactly one ':' separator")
 
     module_path, function_name = parts
 
     if not module_path or not function_name:
-        raise ValueError(
-            f"Invalid callable format: {callable_str}. "
-            "Both module path and function name must be non-empty"
-        )
+        raise ValueError(f"Invalid callable format: {callable_str}. " "Both module path and function name must be non-empty")
 
     # Validate module path (letters, numbers, underscores, dots)
     if not re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*$", module_path):
-        raise ValueError(
-            f"Invalid module path in callable: {module_path}. "
-            "Must be a valid Python module path"
-        )
+        raise ValueError(f"Invalid module path in callable: {module_path}. " "Must be a valid Python module path")
 
     # Validate function name (letters, numbers, underscores)
     if not re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*$", function_name):
-        raise ValueError(
-            f"Invalid function name in callable: {function_name}. "
-            "Must be a valid Python identifier"
-        )
+        raise ValueError(f"Invalid function name in callable: {function_name}. " "Must be a valid Python identifier")
 
     return callable_str
 

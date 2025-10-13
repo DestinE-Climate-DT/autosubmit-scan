@@ -7,9 +7,9 @@ This module provides functionality to:
 """
 
 import json
-from pathlib import Path
-from typing import List, Dict, Any
 from datetime import datetime
+from pathlib import Path
+from typing import Any
 
 from src.domain.models import ErrorMatch
 
@@ -21,7 +21,7 @@ class ReportAggregator:
     criteria, and calculate statistics.
     """
 
-    def load_matches_from_files(self, file_paths: List[str]) -> List[ErrorMatch]:
+    def load_matches_from_files(self, file_paths: list[str]) -> list[ErrorMatch]:
         """Load error matches from JSON files.
 
         Args:
@@ -42,7 +42,7 @@ class ReportAggregator:
             if not path.exists():
                 raise FileNotFoundError(f"Match file not found: {file_path}")
 
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 data = json.load(f)
 
             # Convert timestamp string to datetime if needed
@@ -54,7 +54,7 @@ class ReportAggregator:
 
         return matches
 
-    def group_by_error(self, matches: List[ErrorMatch]) -> Dict[str, List[ErrorMatch]]:
+    def group_by_error(self, matches: list[ErrorMatch]) -> dict[str, list[ErrorMatch]]:
         """Group matches by error_id.
 
         Args:
@@ -63,7 +63,7 @@ class ReportAggregator:
         Returns:
             Dictionary mapping error_id to list of matches
         """
-        grouped: Dict[str, List[ErrorMatch]] = {}
+        grouped: dict[str, list[ErrorMatch]] = {}
 
         for match in matches:
             if match.error_id not in grouped:
@@ -72,7 +72,7 @@ class ReportAggregator:
 
         return grouped
 
-    def group_by_file(self, matches: List[ErrorMatch]) -> Dict[str, List[ErrorMatch]]:
+    def group_by_file(self, matches: list[ErrorMatch]) -> dict[str, list[ErrorMatch]]:
         """Group matches by file_uri, sorted by line_number.
 
         Args:
@@ -81,7 +81,7 @@ class ReportAggregator:
         Returns:
             Dictionary mapping file_uri to sorted list of matches
         """
-        grouped: Dict[str, List[ErrorMatch]] = {}
+        grouped: dict[str, list[ErrorMatch]] = {}
 
         for match in matches:
             if match.file_uri not in grouped:
@@ -94,7 +94,7 @@ class ReportAggregator:
 
         return grouped
 
-    def calculate_statistics(self, matches: List[ErrorMatch]) -> Dict[str, Any]:
+    def calculate_statistics(self, matches: list[ErrorMatch]) -> dict[str, Any]:
         """Calculate summary statistics from matches.
 
         Args:
@@ -116,7 +116,7 @@ class ReportAggregator:
                 "unique_files": 0,
                 "unique_hosts": 0,
                 "errors_by_type": {},
-                "files_by_error": {}
+                "files_by_error": {},
             }
 
         # Collect unique values
@@ -125,10 +125,10 @@ class ReportAggregator:
         hosts = set()
 
         # Count errors by type
-        errors_by_type: Dict[str, int] = {}
+        errors_by_type: dict[str, int] = {}
 
         # Track files by error
-        files_by_error: Dict[str, set] = {}
+        files_by_error: dict[str, set] = {}
 
         for match in matches:
             error_ids.add(match.error_id)
@@ -149,10 +149,7 @@ class ReportAggregator:
             files_by_error[match.error_id].add(match.file_uri)
 
         # Convert sets to lists for JSON serialization
-        files_by_error_list = {
-            error_id: list(files)
-            for error_id, files in files_by_error.items()
-        }
+        files_by_error_list = {error_id: list(files) for error_id, files in files_by_error.items()}
 
         return {
             "total_matches": len(matches),
@@ -160,5 +157,5 @@ class ReportAggregator:
             "unique_files": len(file_uris),
             "unique_hosts": len(hosts),
             "errors_by_type": errors_by_type,
-            "files_by_error": files_by_error_list
+            "files_by_error": files_by_error_list,
         }
