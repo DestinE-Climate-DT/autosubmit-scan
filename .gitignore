@@ -234,3 +234,15 @@ Thumbs.db
 *.temp
 .temp/
 temp/
+
+# Snakemake workflow artifacts
+.snakemake/
+scan_results_*/
+
+# Workflow visualization outputs
+workflow_*.png
+execution_graph.png
+
+# Scan results (local testing)
+results/
+output/
