@@ -3,14 +3,15 @@
 Tests the complete workflow from error matches to reports.
 """
 
-import pytest
 import json
 from datetime import datetime
 from pathlib import Path
 
-from src.domain.models import ErrorMatch, ErrorCatalog, ErrorDefinition, PatternMatcher, PatternType, CatalogMetadata
-from src.reporting.jsonld import ReportGenerator
+import pytest
+
+from src.domain.models import CatalogMetadata, ErrorCatalog, ErrorDefinition, ErrorMatch, PatternMatcher, PatternType
 from src.reporting.aggregator import ReportAggregator
+from src.reporting.jsonld import ReportGenerator
 from src.reporting.templates import TemplateRenderer
 
 
@@ -301,7 +302,7 @@ class TestEndToEndReportGeneration:
             json.dump(original_report, f, indent=2)
 
         # Load back
-        with open(report_path, "r", encoding="utf-8") as f:
+        with open(report_path, encoding="utf-8") as f:
             loaded_report = json.load(f)
 
         # Verify structure is preserved
@@ -316,7 +317,7 @@ class TestReportingModuleExports:
 
     def test_module_exports(self):
         """Test that reporting module exports main classes."""
-        from src.reporting import ReportGenerator, ReportAggregator, TemplateRenderer
+        from src.reporting import ReportAggregator, ReportGenerator, TemplateRenderer
 
         assert ReportGenerator is not None
         assert ReportAggregator is not None

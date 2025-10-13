@@ -8,23 +8,21 @@ Tests for:
 - get_error_definition: Error definition lookup
 """
 
-import json
 import hashlib
-import tempfile
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 import pytest
 
+from src.domain.models import ErrorCatalog, ErrorDefinition, PatternMatcher, PatternType
 from src.orchestration.helpers import (
-    get_file_hash,
     expand_fsspec_patterns,
+    get_error_definition,
+    get_file_hash,
     get_fingerprint,
     read_manifest,
     write_manifest,
-    get_error_definition,
 )
-from src.domain.models import ErrorCatalog, ErrorDefinition, PatternMatcher, PatternType
 
 
 class TestGetFileHash:

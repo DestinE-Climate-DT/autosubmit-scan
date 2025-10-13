@@ -1,7 +1,7 @@
 """Unit tests for template renderer."""
 
+
 import pytest
-from pathlib import Path
 
 
 @pytest.fixture
@@ -82,8 +82,9 @@ class TestTemplateRenderer:
 
     def test_render_nonexistent_template(self, sample_report_data, tmp_path):
         """Test rendering non-existent template raises error."""
-        from src.reporting.templates import TemplateRenderer
         from jinja2 import TemplateNotFound
+
+        from src.reporting.templates import TemplateRenderer
 
         renderer = TemplateRenderer()
         output_path = tmp_path / "output.txt"

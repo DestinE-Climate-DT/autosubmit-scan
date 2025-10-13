@@ -5,17 +5,19 @@ report generation, and visualization.
 """
 
 import json
-import pytest
-from pathlib import Path
-from datetime import datetime
-import tempfile
 import shutil
+import tempfile
+from datetime import datetime
+from pathlib import Path
+
+import pytest
+import yaml
 
 from src.domain.catalog import load_catalog, save_catalog
-from src.domain.models import ErrorCatalog, ErrorDefinition, PatternMatcher as PatternConfig
+from src.domain.models import ErrorCatalog, ErrorDefinition
+from src.domain.models import PatternMatcher as PatternConfig
+from src.matching.pattern_matcher import PatternMatcherFactory
 from src.reporting.jsonld import ReportGenerator
-from src.reporting.templates import TemplateRenderer
-from src.reporting.tui import ErrorReportApp
 
 
 @pytest.mark.e2e
@@ -84,11 +86,11 @@ class TestFullWorkflow:
 
         # Create matcher
         error_def = catalog.errors["test_error"]
-        matcher = PatternMatcher(error_def.pattern)
+        matcher = PatternMatcherFactory.create_matcher(error_def.pattern)
 
         # Scan file
         matches = []
-        with open(test_log_file, "r") as f:
+        with open(test_log_file) as f:
             for line_num, line in enumerate(f, 1):
                 if matcher.match(line):
                     from src.domain.models import ErrorMatch
@@ -355,7 +357,7 @@ class TestFullWorkflow:
         bad_catalog.write_text("this is not valid yaml: [[[")
 
         # Should raise YAML error
-        with pytest.raises(Exception):  # yaml.YAMLError
+        with pytest.raises(yaml.YAMLError):
             load_catalog(str(bad_catalog))
 
     def test_init_command(self, temp_workspace):

@@ -6,9 +6,11 @@ Tests for:
 - Edge cases (beginning/end of file, single line, etc.)
 """
 
-import pytest
 import tempfile
 from pathlib import Path
+
+import pytest
+
 from src.matching.context_extractor import ContextExtractor, ContextResult
 
 

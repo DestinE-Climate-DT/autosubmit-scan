@@ -9,20 +9,20 @@ These tests require CI services to be running. Use pytest markers:
 - pytest -m integration --remote
 """
 
-import pytest
 import os
 from datetime import datetime
 
+import pytest
+
 from src.domain.models import (
+    ErrorDefinition,
     PatternMatcher,
     PatternType,
-    ErrorDefinition,
 )
-from src.matching.pattern_matcher import PatternMatcherFactory
-from src.matching.stream_reader import FileStream
 from src.matching.context_extractor import ContextExtractor
 from src.matching.match_builder import ErrorMatchBuilder
-
+from src.matching.pattern_matcher import PatternMatcherFactory
+from src.matching.stream_reader import FileStream
 
 # Mark all tests in this file as integration tests
 pytestmark = pytest.mark.integration
@@ -144,7 +144,7 @@ class TestPatternMatchingS3:
         with FileStream.open_file(s3_uri) as stream:
             # Read first 10 lines only
             count = 0
-            for line_num, line_text in stream.read_lines():
+            for _line_num, _line_text in stream.read_lines():
                 count += 1
                 if count >= 10:
                     break
@@ -168,7 +168,7 @@ class TestPatternMatchingSFTP:
         with FileStream.open_file(sftp_uri) as stream:
             found_match = False
 
-            for line_num, line_text in stream.read_lines():
+            for _line_num, line_text in stream.read_lines():
                 if matcher.match(line_text):
                     found_match = True
                     break
@@ -204,7 +204,7 @@ class TestPatternMatchingSFTP:
 
         with FileStream.open_file(sftp_uri) as stream:
             matches = 0
-            for line_num, line_text in stream.read_lines():
+            for _line_num, line_text in stream.read_lines():
                 if matcher.match(line_text):
                     matches += 1
 
@@ -227,7 +227,7 @@ class TestPatternMatchingFTP:
         with FileStream.open_file(ftp_uri) as stream:
             found_match = False
 
-            for line_num, line_text in stream.read_lines():
+            for _line_num, line_text in stream.read_lines():
                 if matcher.match(line_text):
                     found_match = True
                     break
@@ -383,7 +383,7 @@ class TestMultiProtocolSupport:
 
         # Test local
         with FileStream.open_file(local_oom_log) as stream:
-            for line_num, line_text in stream.read_lines():
+            for _line_num, line_text in stream.read_lines():
                 if matcher.match(line_text):
                     results['local'] = True
                     break
@@ -392,7 +392,7 @@ class TestMultiProtocolSupport:
         if pytest.mark.remote:
             try:
                 with FileStream.open_file(s3_uri) as stream:
-                    for line_num, line_text in stream.read_lines():
+                    for _line_num, line_text in stream.read_lines():
                         if matcher.match(line_text):
                             results['s3'] = True
                             break

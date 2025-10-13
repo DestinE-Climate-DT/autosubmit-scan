@@ -5,20 +5,22 @@ Tests cover:
 - RailwayPlanner: Building execution DAG for error chains
 """
 
-import pytest
 from datetime import datetime
-from src.orchestration.railway import RailwayExecutor, RailwayPlanner
+
+import pytest
+
 from src.domain.models import (
+    CatalogMetadata,
     ConditionSpec,
     ConditionType,
-    ErrorMatch,
     ErrorCatalog,
-    ErrorDefinition,
     ErrorCondition,
+    ErrorDefinition,
+    ErrorMatch,
     PatternMatcher,
     PatternType,
-    CatalogMetadata,
 )
+from src.orchestration.railway import RailwayExecutor, RailwayPlanner
 
 
 @pytest.fixture

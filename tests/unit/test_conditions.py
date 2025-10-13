@@ -7,20 +7,21 @@ Tests cover:
 - Error handling for missing fields
 """
 
-import pytest
-import re
 from datetime import datetime
-from src.orchestration.conditions import ConditionEvaluator, get_field_value
+
+import pytest
+
 from src.domain.models import (
+    CatalogMetadata,
     ConditionSpec,
     ConditionType,
-    ErrorMatch,
     ErrorCatalog,
     ErrorDefinition,
+    ErrorMatch,
     PatternMatcher,
     PatternType,
-    CatalogMetadata,
 )
+from src.orchestration.conditions import ConditionEvaluator, get_field_value
 
 
 @pytest.fixture

@@ -165,7 +165,10 @@ def generate_execution_graph(results_dir: Path) -> str:
     "--graph-type",
     type=click.Choice(["dag", "rulegraph", "filegraph", "execution", "all"], case_sensitive=False),
     default="rulegraph",
-    help="Graph type: dag (all jobs), rulegraph (rules only), filegraph (file flow), execution (from results), all (generate all) [default: rulegraph]",
+    help=(
+        "Graph type: dag (all jobs), rulegraph (rules only), filegraph (file flow), "
+        "execution (from results), all (generate all) [default: rulegraph]"
+    ),
 )
 @click.option(
     "--results-dir",

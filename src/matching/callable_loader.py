@@ -96,7 +96,7 @@ def validate_callable_signature(func: Callable) -> bool:
     # Check if parameter has type annotation
     if param.annotation != inspect.Parameter.empty:
         # If annotated, should be str
-        if param.annotation != str:
+        if param.annotation is not str:
             return False
 
     return True

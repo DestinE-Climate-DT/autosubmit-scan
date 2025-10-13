@@ -3,10 +3,11 @@
 Tests for loading, grouping, and calculating statistics on error matches.
 """
 
-import pytest
 import json
 from datetime import datetime
-from pathlib import Path
+
+import pytest
+
 from src.domain.models import ErrorMatch
 
 
@@ -406,8 +407,9 @@ class TestAggregatorIntegration:
 
     def test_load_from_directory_pattern(self, tmp_path, sample_matches):
         """Test loading matches from files matching a pattern."""
-        from src.reporting.aggregator import ReportAggregator
         import glob
+
+        from src.reporting.aggregator import ReportAggregator
 
         # Create multiple match files
         for i, match in enumerate(sample_matches):

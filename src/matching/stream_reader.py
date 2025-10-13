@@ -166,21 +166,3 @@ class FileStream:
             result.append(line_text)
 
         return result
-
-    def close(self):
-        """Close the file handle."""
-        if self.file_handle:
-            try:
-                self.file_handle.close()
-            except Exception:
-                # Ignore errors on close
-                pass
-
-    def __enter__(self) -> "FileStream":
-        """Context manager entry."""
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Context manager exit - close file."""
-        self.close()
-        return False

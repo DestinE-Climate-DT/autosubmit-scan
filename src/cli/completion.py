@@ -347,7 +347,6 @@ class FsspecPathCompleter(Completer):
             return config
 
         try:
-            current_host = None
             in_target_host = False
 
             with open(ssh_config_path) as f:
@@ -360,7 +359,6 @@ class FsspecPathCompleter(Completer):
                         # Check if this is our target host
                         hosts_in_line = host_line.split()
                         in_target_host = alias in hosts_in_line
-                        current_host = host_line if in_target_host else None
                         continue
 
                     # Parse config options for our target host
@@ -561,7 +559,8 @@ class FsspecPathCompleter(Completer):
                     name = os.path.basename(str(entry))
                     try:
                         entry_type = "directory" if fs.isdir(entry) else "file"
-                    except:
+                    except Exception:
+                        # Fallback to file if we can't determine type
                         entry_type = "file"
 
                 if name:  # Skip empty names

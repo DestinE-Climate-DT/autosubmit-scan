@@ -109,7 +109,7 @@ def get_field_value(obj: Any, path: str) -> Any | None:
                     return None
             elif part_type == "index":
                 # Array/list indexing
-                if isinstance(current, (list, tuple)):
+                if isinstance(current, list | tuple):
                     current = current[part_value]
                 else:
                     return None

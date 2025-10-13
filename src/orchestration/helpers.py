@@ -180,7 +180,7 @@ def get_fingerprint(uri: str) -> dict[str, Any]:
         mtime = file_info.get("mtime")
         if mtime is not None:
             # Convert to ISO format
-            if isinstance(mtime, (int, float)):
+            if isinstance(mtime, int | float):
                 mtime_dt = datetime.fromtimestamp(mtime)
             elif isinstance(mtime, datetime):
                 mtime_dt = mtime

@@ -4,8 +4,9 @@ These tests define the expected behavior of the domain models
 before implementation (TDD approach).
 """
 
-import pytest
 from datetime import datetime
+
+import pytest
 from pydantic import ValidationError
 
 
@@ -244,7 +245,7 @@ class TestErrorCondition:
 
     def test_error_condition_creation(self):
         """Test creation of error condition."""
-        from src.domain.models import ErrorCondition, ConditionSpec, ConditionType
+        from src.domain.models import ConditionSpec, ConditionType, ErrorCondition
 
         error_condition = ErrorCondition(
             error_id="next_error",
@@ -302,14 +303,7 @@ class TestErrorDefinition:
 
     def test_error_definition_with_next_errors(self):
         """Test error definition with railway pattern."""
-        from src.domain.models import (
-            ErrorDefinition,
-            PatternMatcher,
-            PatternType,
-            ErrorCondition,
-            ConditionSpec,
-            ConditionType
-        )
+        from src.domain.models import ConditionSpec, ConditionType, ErrorCondition, ErrorDefinition, PatternMatcher, PatternType
 
         error = ErrorDefinition(
             id="oom_error",
@@ -390,13 +384,7 @@ class TestErrorCatalog:
 
     def test_error_catalog_creation(self):
         """Test creation of error catalog."""
-        from src.domain.models import (
-            ErrorCatalog,
-            CatalogMetadata,
-            ErrorDefinition,
-            PatternMatcher,
-            PatternType
-        )
+        from src.domain.models import CatalogMetadata, ErrorCatalog, ErrorDefinition, PatternMatcher, PatternType
 
         now = datetime.now()
         catalog = ErrorCatalog(
@@ -426,7 +414,7 @@ class TestErrorCatalog:
 
     def test_semver_validation(self):
         """Test semver validation for catalog versions."""
-        from src.domain.models import ErrorCatalog, CatalogMetadata
+        from src.domain.models import CatalogMetadata, ErrorCatalog
 
         now = datetime.now()
         metadata = CatalogMetadata(
@@ -679,13 +667,7 @@ class TestModelSerialization:
 
     def test_error_catalog_dict(self):
         """Test ErrorCatalog serialization to dict."""
-        from src.domain.models import (
-            ErrorCatalog,
-            CatalogMetadata,
-            ErrorDefinition,
-            PatternMatcher,
-            PatternType
-        )
+        from src.domain.models import CatalogMetadata, ErrorCatalog, ErrorDefinition, PatternMatcher, PatternType
 
         now = datetime.now()
         catalog = ErrorCatalog(

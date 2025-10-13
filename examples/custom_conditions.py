@@ -14,8 +14,7 @@ Examples of condition patterns:
 - Metadata-based conditions (hostname, user, job ID)
 """
 
-from datetime import datetime
-from src.domain.models import ErrorMatch, ErrorCatalog
+from src.domain.models import ErrorCatalog, ErrorMatch
 
 
 def is_python_error(error_match: ErrorMatch, catalog: ErrorCatalog) -> bool:

@@ -5,15 +5,17 @@ scan, view, export, validate, init.
 """
 
 import json
-import pytest
+import shutil
 import subprocess
 import tempfile
-import shutil
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
+
+import pytest
 
 from src.domain.catalog import save_catalog
-from src.domain.models import ErrorCatalog, ErrorDefinition, PatternMatcher as PatternConfig, ErrorMatch
+from src.domain.models import ErrorCatalog, ErrorDefinition, ErrorMatch
+from src.domain.models import PatternMatcher as PatternConfig
 from src.reporting.jsonld import ReportGenerator
 
 

@@ -5,21 +5,17 @@ Tests for:
 - extract_matches_with_context: Extract ErrorMatch objects with context
 """
 
-import tempfile
-from pathlib import Path
 from datetime import datetime
 
-import pytest
-
-from src.orchestration.scanners import (
-    scan_file_for_pattern,
-    extract_matches_with_context,
-)
 from src.domain.models import (
     ErrorDefinition,
+    ErrorMatch,
     PatternMatcher,
     PatternType,
-    ErrorMatch,
+)
+from src.orchestration.scanners import (
+    extract_matches_with_context,
+    scan_file_for_pattern,
 )
 
 

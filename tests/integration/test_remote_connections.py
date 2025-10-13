@@ -18,7 +18,6 @@ import pytest
 def test_minio_connection(minio_config):
     """Test connection to MinIO/S3 service."""
     import boto3
-    from botocore.exceptions import ClientError
 
     # Create S3 client
     endpoint = minio_config["endpoint"]
@@ -219,9 +218,10 @@ def test_all_services_accessible(minio_config, sftp_config, ftp_config):
 
     This ensures there are no port conflicts or resource issues.
     """
+    from ftplib import FTP
+
     import boto3
     import paramiko
-    from ftplib import FTP
 
     # Test MinIO
     endpoint = minio_config["endpoint"]

@@ -8,9 +8,11 @@ Tests for:
 - Memory efficiency
 """
 
-import pytest
 import tempfile
 from pathlib import Path
+
+import pytest
+
 from src.matching.stream_reader import FileStream
 
 
@@ -195,7 +197,7 @@ class TestFileStream:
 
         # Read first 100 lines only
         count = 0
-        for line_num, line_text in stream.read_lines():
+        for _line_num, _line_text in stream.read_lines():
             count += 1
             if count == 100:
                 break

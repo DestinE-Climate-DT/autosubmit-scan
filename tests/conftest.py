@@ -13,7 +13,6 @@ Fixtures are configured based on environment variables and CI detection.
 
 import os
 from pathlib import Path
-from typing import Dict, Generator
 
 import pytest
 
@@ -74,7 +73,7 @@ def pytest_addoption(parser):
 
 
 @pytest.fixture(scope="session")
-def minio_config() -> Dict[str, str]:
+def minio_config() -> dict[str, str]:
     """MinIO/S3 configuration from environment."""
     return {
         "endpoint": os.getenv("MINIO_ENDPOINT", "localhost:9000"),
@@ -85,7 +84,7 @@ def minio_config() -> Dict[str, str]:
 
 
 @pytest.fixture(scope="session")
-def sftp_config() -> Dict[str, str]:
+def sftp_config() -> dict[str, str]:
     """SFTP configuration from environment."""
     return {
         "host": os.getenv("SFTP_HOST", "localhost"),
@@ -96,7 +95,7 @@ def sftp_config() -> Dict[str, str]:
 
 
 @pytest.fixture(scope="session")
-def ftp_config() -> Dict[str, str]:
+def ftp_config() -> dict[str, str]:
     """FTP configuration from environment."""
     return {
         "host": os.getenv("FTP_HOST", "localhost"),
@@ -304,7 +303,7 @@ def fixtures_dir() -> Path:
 
 
 @pytest.fixture(scope="session")
-def sample_log_files(fixtures_dir) -> Dict[str, Path]:
+def sample_log_files(fixtures_dir) -> dict[str, Path]:
     """Dictionary of sample log files."""
     return {
         "oom": fixtures_dir / "slurm_oom.log",
@@ -314,7 +313,7 @@ def sample_log_files(fixtures_dir) -> Dict[str, Path]:
 
 
 @pytest.fixture
-def expected_oom_error() -> Dict[str, str]:
+def expected_oom_error() -> dict[str, str]:
     """Expected error patterns for OOM log."""
     return {
         "error_type": "out_of_memory",
@@ -324,7 +323,7 @@ def expected_oom_error() -> Dict[str, str]:
 
 
 @pytest.fixture
-def expected_timeout_error() -> Dict[str, str]:
+def expected_timeout_error() -> dict[str, str]:
     """Expected error patterns for timeout log."""
     return {
         "error_type": "timeout",
@@ -334,7 +333,7 @@ def expected_timeout_error() -> Dict[str, str]:
 
 
 @pytest.fixture
-def expected_app_error() -> Dict[str, str]:
+def expected_app_error() -> dict[str, str]:
     """Expected error patterns for application error log."""
     return {
         "error_type": "application_error",

@@ -4,9 +4,11 @@ These tests define the expected behavior of the report generator
 following TDD principles.
 """
 
-import pytest
 from datetime import datetime
-from src.domain.models import ErrorMatch, ErrorCatalog, ErrorDefinition, PatternMatcher, PatternType, CatalogMetadata
+
+import pytest
+
+from src.domain.models import CatalogMetadata, ErrorCatalog, ErrorDefinition, ErrorMatch, PatternMatcher, PatternType
 
 
 @pytest.fixture
@@ -129,8 +131,9 @@ class TestReportStructure:
 
     def test_report_has_unique_id(self, sample_matches, sample_catalog):
         """Test that each report gets a unique UUID."""
-        from src.reporting.jsonld import ReportGenerator
         import uuid
+
+        from src.reporting.jsonld import ReportGenerator
 
         generator = ReportGenerator()
         metadata = {"author": {"name": "Test", "email": "test@example.com"}}
@@ -287,7 +290,7 @@ class TestHierarchicalGrouping:
         file_groups = generator.group_by_file(sample_matches)
 
         # Within each file, matches should be sorted by line number
-        for file_uri, matches in file_groups.items():
+        for _file_uri, matches in file_groups.items():
             line_numbers = [m.line_number for m in matches]
             assert line_numbers == sorted(line_numbers)
 
@@ -315,8 +318,9 @@ class TestReportMetadata:
 
     def test_date_created(self, sample_matches, sample_catalog):
         """Test that dateCreated is in ISO format."""
-        from src.reporting.jsonld import ReportGenerator
         from datetime import datetime
+
+        from src.reporting.jsonld import ReportGenerator
 
         generator = ReportGenerator()
         metadata = {"author": {"name": "Test", "email": "test@example.com"}}

@@ -11,25 +11,20 @@ Tests the workflow components:
 """
 
 import json
-import tempfile
-from pathlib import Path
 from datetime import datetime
 
-import pytest
-
 from src.domain.models import ErrorCatalog, ErrorDefinition, PatternMatcher, PatternType
-from src.domain.catalog import load_catalog
 from src.orchestration.helpers import (
-    get_file_hash,
     expand_fsspec_patterns,
+    get_error_definition,
+    get_file_hash,
     get_fingerprint,
     read_manifest,
     write_manifest,
-    get_error_definition,
 )
 from src.orchestration.scanners import (
-    scan_file_for_pattern,
     extract_matches_with_context,
+    scan_file_for_pattern,
 )
 
 
@@ -120,11 +115,11 @@ class TestFingerprinting:
         assert fp_file.exists()
 
         # Verify content
-        with open(fp_file, 'r') as f:
+        with open(fp_file) as f:
             loaded_fp = json.load(f)
 
         assert loaded_fp["uri"] == str(test_file)
-        assert loaded_fp["size"] == len("test content\n".encode('utf-8'))
+        assert loaded_fp["size"] == len(b"test content\n")
         assert "mtime" in loaded_fp
         assert "checksum" in loaded_fp
 
@@ -175,7 +170,7 @@ class TestPatternMatching:
         assert match_file.exists()
 
         # Verify content
-        with open(match_file, 'r') as f:
+        with open(match_file) as f:
             loaded_data = json.load(f)
 
         assert loaded_data["match_line_numbers"] == [2, 4]
@@ -243,7 +238,7 @@ class TestMatchFiltering:
         files_with_matches = []
 
         for match_file in matches_dir.glob("*.json"):
-            with open(match_file, 'r') as f:
+            with open(match_file) as f:
                 match_data = json.load(f)
 
             if match_data["match_line_numbers"]:
@@ -306,7 +301,7 @@ class TestContextExtraction:
         assert result_file.exists()
 
         # Verify content
-        with open(result_file, 'r') as f:
+        with open(result_file) as f:
             loaded_matches = json.load(f)
 
         assert len(loaded_matches) == 1
@@ -342,7 +337,7 @@ class TestResultAggregation:
         all_matches = []
 
         for result_file in results_dir.glob("*.json"):
-            with open(result_file, 'r') as f:
+            with open(result_file) as f:
                 file_matches = json.load(f)
             all_matches.extend(file_matches)
 
@@ -352,7 +347,7 @@ class TestResultAggregation:
             json.dump(all_matches, f, indent=2)
 
         # Verify aggregation
-        with open(aggregated_file, 'r') as f:
+        with open(aggregated_file) as f:
             loaded_matches = json.load(f)
 
         assert len(loaded_matches) == 3

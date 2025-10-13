@@ -8,15 +8,17 @@ Tests for:
 """
 
 import re
+
 import pytest
-from src.matching.pattern_matcher import (
-    PatternMatcherFactory,
-    BasePatternMatcher,
-    LiteralPatternMatcher,
-    RegexPatternMatcher,
-    CallablePatternMatcher,
-)
+
 from src.domain.models import PatternMatcher, PatternType
+from src.matching.pattern_matcher import (
+    BasePatternMatcher,
+    CallablePatternMatcher,
+    LiteralPatternMatcher,
+    PatternMatcherFactory,
+    RegexPatternMatcher,
+)
 
 
 class TestLiteralPatternMatcher:

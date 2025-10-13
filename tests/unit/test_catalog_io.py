@@ -4,11 +4,11 @@ These tests define the expected behavior of catalog loading/saving
 before implementation (TDD approach).
 """
 
-import pytest
-import tempfile
-import os
+from datetime import UTC, datetime
 from pathlib import Path
-from datetime import datetime
+
+import pytest
+import yaml
 
 
 class TestYAMLCatalogIO:
@@ -54,13 +54,7 @@ errors:
     def test_save_yaml_catalog(self, tmp_path):
         """Test saving a catalog to YAML."""
         from src.domain.catalog import save_catalog
-        from src.domain.models import (
-            ErrorCatalog,
-            CatalogMetadata,
-            ErrorDefinition,
-            PatternMatcher,
-            PatternType
-        )
+        from src.domain.models import CatalogMetadata, ErrorCatalog, ErrorDefinition, PatternMatcher, PatternType
 
         now = datetime(2024, 1, 1, 0, 0, 0)
         catalog = ErrorCatalog(
@@ -95,16 +89,16 @@ errors:
 
     def test_yaml_round_trip(self, tmp_path):
         """Test that save/load round-trip preserves data."""
-        from src.domain.catalog import save_catalog, load_catalog
+        from src.domain.catalog import load_catalog, save_catalog
         from src.domain.models import (
-            ErrorCatalog,
             CatalogMetadata,
+            ConditionSpec,
+            ConditionType,
+            ErrorCatalog,
+            ErrorCondition,
             ErrorDefinition,
             PatternMatcher,
             PatternType,
-            ErrorCondition,
-            ConditionSpec,
-            ConditionType
         )
 
         now = datetime(2024, 1, 1, 12, 0, 0)
@@ -163,13 +157,14 @@ errors:
         invalid_file = tmp_path / "invalid.yaml"
         invalid_file.write_text("invalid: yaml: content: [")
 
-        with pytest.raises(Exception):  # Should raise YAML parsing error
+        with pytest.raises(yaml.YAMLError):  # Should raise YAML parsing error
             load_catalog(str(invalid_file))
 
     def test_invalid_catalog_structure_raises_error(self, tmp_path):
         """Test that YAML with invalid catalog structure raises validation error."""
-        from src.domain.catalog import load_catalog
         from pydantic import ValidationError
+
+        from src.domain.catalog import load_catalog
 
         # Valid YAML but invalid catalog structure
         invalid_catalog = """
@@ -246,13 +241,7 @@ class TestJSONLDSerialization:
     def test_catalog_to_jsonld(self):
         """Test converting catalog to JSON-LD format."""
         from src.domain.catalog import catalog_to_jsonld
-        from src.domain.models import (
-            ErrorCatalog,
-            CatalogMetadata,
-            ErrorDefinition,
-            PatternMatcher,
-            PatternType
-        )
+        from src.domain.models import CatalogMetadata, ErrorCatalog, ErrorDefinition, PatternMatcher, PatternType
 
         now = datetime(2024, 1, 1, 0, 0, 0)
         catalog = ErrorCatalog(
@@ -335,13 +324,7 @@ class TestJSONLDSerialization:
     def test_jsonld_round_trip(self):
         """Test JSON-LD round-trip conversion."""
         from src.domain.catalog import catalog_to_jsonld, jsonld_to_catalog
-        from src.domain.models import (
-            ErrorCatalog,
-            CatalogMetadata,
-            ErrorDefinition,
-            PatternMatcher,
-            PatternType
-        )
+        from src.domain.models import CatalogMetadata, ErrorCatalog, ErrorDefinition, PatternMatcher, PatternType
 
         now = datetime(2024, 1, 1, 0, 0, 0)
         original = ErrorCatalog(
@@ -379,19 +362,13 @@ class TestSchemaValidation:
 
     def test_validate_catalog_against_schema(self, tmp_path):
         """Test that a valid catalog passes JSON Schema validation."""
-        from src.domain.catalog import save_catalog
-        from src.domain.models import (
-            ErrorCatalog,
-            CatalogMetadata,
-            ErrorDefinition,
-            PatternMatcher,
-            PatternType
-        )
         import json
         import subprocess
-        from datetime import timezone
 
-        now = datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+        from src.domain.catalog import save_catalog
+        from src.domain.models import CatalogMetadata, ErrorCatalog, ErrorDefinition, PatternMatcher, PatternType
+
+        now = datetime(2024, 1, 1, 0, 0, 0, tzinfo=UTC)
         catalog = ErrorCatalog(
             version="1.0.0",
             schema_version="1.0.0",
@@ -478,13 +455,7 @@ class TestCatalogHelpers:
 
     def test_catalog_get_error_by_id(self):
         """Test retrieving error by ID from catalog."""
-        from src.domain.models import (
-            ErrorCatalog,
-            CatalogMetadata,
-            ErrorDefinition,
-            PatternMatcher,
-            PatternType
-        )
+        from src.domain.models import CatalogMetadata, ErrorCatalog, ErrorDefinition, PatternMatcher, PatternType
 
         now = datetime.now()
         catalog = ErrorCatalog(
