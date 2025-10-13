@@ -212,7 +212,7 @@ def get_fingerprint(uri: str) -> dict[str, Any]:
 
                 md5_hash = hashlib.md5()
 
-                with fs.open(paths[0], "rb") as f:
+                with fs.open(file_path, "rb") as f:
                     # Read in chunks to handle large files
                     for chunk in iter(lambda: f.read(8192), b""):
                         md5_hash.update(chunk)
