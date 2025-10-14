@@ -10,11 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Complete CLI interface with commands: `scan`, `view`, `export`, `validate`, `init`, `add`, `dag`
 - Expid shortcut: run `as-scan a23i` directly without specifying `scan` command
-- **Dynamic variable extraction from local files**: Extract values from local configuration files to use in catalog file URIs
+- **Dynamic variable extraction from files**: Extract values from local or remote configuration files to use in catalog file URIs
   - Support for regex extraction (with named groups or first group)
   - Support for line-based extraction (get specific line number)
   - Support for YAML path extraction (dot notation like `config.platforms.host`)
   - Support for JSON path extraction (JSONPath expressions)
+  - **Works with any fsspec-compatible URI**: Local files, S3, GitHub, SSH, SFTP, HTTP/HTTPS
   - Automatic template rendering in file URIs using Jinja2 (e.g., `ssh://{{ host }}/logs/*.log`)
   - Fallback to default values when extraction fails
   - Enables automatic host detection for multi-platform workflows (e.g., LUMI vs MN5)

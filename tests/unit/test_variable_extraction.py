@@ -149,10 +149,10 @@ class TestFileNotFound:
         assert value == "localhost"
 
     def test_file_not_found_raises_without_default(self, tmp_path):
-        """Test that FileNotFoundError is raised without default."""
+        """Test that ValueError is raised without default (with FileNotFoundError as cause)."""
         extractor = VariableExtractor(path=str(tmp_path / "nonexistent.txt"), method="regex", pattern=r"host:\s*(\S+)")
 
-        with pytest.raises(FileNotFoundError):
+        with pytest.raises(ValueError, match="Variable extraction failed"):
             extract_variable(extractor)
 
 

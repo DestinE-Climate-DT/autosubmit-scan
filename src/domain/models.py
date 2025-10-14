@@ -143,17 +143,25 @@ class ErrorCondition(BaseModel):
 class VariableExtractor(BaseModel):
     """Configuration for extracting a variable from a file.
 
-    Supports extracting values from local files using various methods:
+    Supports extracting values from local or remote files using various methods:
     - regex: Extract using regular expression pattern (group 1 or named 'value')
     - line: Extract specific line number
     - json_path: Extract from JSON file using JSONPath expression
     - yaml_path: Extract from YAML file using dot notation path (e.g., 'config.platforms.host')
+
+    Supports any fsspec-compatible URI for file sources:
+    - Local: /path/to/file or ~/path/to/file
+    - S3: s3://bucket/path/to/file
+    - GitHub: github://org:repo@ref/path/to/file
+    - SSH: ssh://user@host/path/to/file
+    - SFTP: sftp://user@host/path/to/file
+    - HTTP/HTTPS: https://example.com/path/to/file
     """
 
     model_config = {"validate_assignment": True}
 
     source: str = Field("file", description="Source type (currently only 'file' supported)")
-    path: str = Field(..., description="Path to local file to read")
+    path: str = Field(..., description="Local path or fsspec URI to file")
     method: str = Field("regex", description="Extraction method: 'regex', 'line', 'json_path', 'yaml_path'")
     pattern: str | None = Field(None, description="Pattern for regex extraction, JSONPath, or YAML path")
     line_number: int | None = Field(None, description="Line number for 'line' method (1-indexed)")
