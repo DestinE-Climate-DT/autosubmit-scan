@@ -177,9 +177,8 @@ def get_fsspec_filesystem(uri: str):
             "port": ssh_config["port"],
         }
 
-        # Add identity file if specified
-        if ssh_config["identity_file"]:
-            fs_kwargs["client_keys"] = [ssh_config["identity_file"]]
+        # Note: fsspec's sshfs uses asyncssh which automatically discovers keys from
+        # ~/.ssh/ and ssh-agent, so we don't need to explicitly specify key_filename
 
         fs = fsspec.filesystem(protocol, **fs_kwargs)
 
@@ -601,9 +600,8 @@ class FsspecPathCompleter(Completer):
                     "port": ssh_config["port"],
                 }
 
-                # Add identity file if specified
-                if ssh_config["identity_file"]:
-                    fs_kwargs["client_keys"] = [ssh_config["identity_file"]]
+                # Note: fsspec's sshfs uses asyncssh which automatically discovers keys from
+                # ~/.ssh/ and ssh-agent, so we don't need to explicitly specify key_filename
 
                 fs = fsspec.filesystem(protocol, **fs_kwargs)
             except Exception as e:
