@@ -158,11 +158,12 @@ def get_default_template_variables(expid: str) -> dict:
     }
 
 
-def run_default_scan(expid: str):
+def run_default_scan(expid: str, verbose: int = 0):
     """Run default scan for an Autosubmit experiment.
 
     Args:
         expid: Experiment ID
+        verbose: Verbosity level (0=INFO, 1=DEBUG, 2=TRACE)
     """
     logger.info(f"Running default scan for experiment: {expid}")
 
@@ -248,6 +249,7 @@ def run_default_scan(expid: str):
             cores=4,  # Default to 4 cores
             dryrun=False,
             force=False,
+            verbose=verbose,  # Pass through verbose flag
         )
     except Exception as e:
         logger.error(f"Scan failed: {e}")
@@ -268,6 +270,7 @@ def run_default_scan(expid: str):
 # Click command wrapper (hidden from help, used internally)
 @click.command(name="default", hidden=True)
 @click.argument("expid")
-def default(expid):
+@click.option("--verbose", "-v", count=True, help="Increase verbosity (can be repeated: -v for DEBUG, -vv for TRACE)")
+def default(expid, verbose):
     """Run default scan for an Autosubmit experiment (internal command)."""
-    run_default_scan(expid)
+    run_default_scan(expid, verbose=verbose)
