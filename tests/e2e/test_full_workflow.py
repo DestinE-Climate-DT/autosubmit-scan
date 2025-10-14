@@ -47,18 +47,15 @@ class TestFullWorkflow:
             errors={
                 "test_error": ErrorDefinition(
                     id="test_error",
-                    pattern=PatternConfig(
-                        type="literal",
-                        pattern="ERROR: Test failure"
-                    ),
-                    files=[],
+                    pattern=PatternConfig(type="literal", pattern="ERROR: Test failure"),
+                    files=["/tmp/*.log"],
                     meaning="Test error for E2E testing",
                     suggestion="This is a test error",
                     context_lines=3,
                     next_errors=[],
-                    metadata={"severity": "high"}
+                    metadata={"severity": "high"},
                 )
-            }
+            },
         )
 
         catalog_path = temp_workspace / "test_catalog.yaml"
@@ -70,11 +67,7 @@ class TestFullWorkflow:
         """Create a test log file with errors."""
         log_file = temp_workspace / "test.log"
         log_file.write_text(
-            "Starting application...\n"
-            "Processing data...\n"
-            "ERROR: Test failure\n"
-            "Failed to process item\n"
-            "Shutting down...\n"
+            "Starting application...\nProcessing data...\nERROR: Test failure\nFailed to process item\nShutting down...\n"
         )
         return log_file
 
@@ -94,6 +87,7 @@ class TestFullWorkflow:
             for line_num, line in enumerate(f, 1):
                 if matcher.match(line):
                     from src.domain.models import ErrorMatch
+
                     match = ErrorMatch(
                         error_id="test_error",
                         file_uri=str(test_log_file),
@@ -102,7 +96,7 @@ class TestFullWorkflow:
                         context_before=[],
                         context_after=[],
                         timestamp=datetime.now(),
-                        metadata={}
+                        metadata={},
                     )
                     matches.append(match)
 
@@ -114,9 +108,7 @@ class TestFullWorkflow:
         # Generate report
         generator = ReportGenerator()
         report = generator.generate_report(
-            matches=matches,
-            catalog=catalog,
-            metadata={"author": {"name": "Test", "email": "test@example.com"}}
+            matches=matches, catalog=catalog, metadata={"author": {"name": "Test", "email": "test@example.com"}}
         )
 
         # Verify report structure
@@ -149,29 +141,24 @@ class TestFullWorkflow:
                 "error_a": ErrorDefinition(
                     id="error_a",
                     pattern=PatternConfig(type="literal", pattern="ERROR A"),
-                    files=[],
+                    files=["/tmp/*.log"],
                     meaning="First error",
                     suggestion="Check error A",
                     context_lines=2,
-                    next_errors=[
-                        {
-                            "error_id": "error_b",
-                            "when": {"type": "always"}
-                        }
-                    ],
-                    metadata={}
+                    next_errors=[{"error_id": "error_b", "when": {"type": "always"}}],
+                    metadata={},
                 ),
                 "error_b": ErrorDefinition(
                     id="error_b",
                     pattern=PatternConfig(type="literal", pattern="ERROR B"),
-                    files=[],
+                    files=["/tmp/*.log"],
                     meaning="Second error",
                     suggestion="Check error B",
                     context_lines=2,
                     next_errors=[],
-                    metadata={}
-                )
-            }
+                    metadata={},
+                ),
+            },
         )
 
         catalog_path = temp_workspace / "railway_catalog.yaml"
@@ -184,7 +171,11 @@ class TestFullWorkflow:
         # Load and verify
         loaded = load_catalog(str(catalog_path))
         assert len(loaded.errors) == 2
-        assert loaded.errors["error_a"].next_errors[0]["error_id"] == "error_b"
+
+        # Verify railway pattern structure
+        error_a = loaded.errors["error_a"]
+        first_condition = error_a.next_errors[0]
+        assert first_condition.error_id == "error_b"
 
     def test_scan_generates_report(self, simple_catalog, test_log_file, temp_workspace):
         """Test that scanning generates a complete report."""
@@ -193,6 +184,7 @@ class TestFullWorkflow:
 
         # Create matches
         from src.domain.models import ErrorMatch
+
         matches = [
             ErrorMatch(
                 error_id="test_error",
@@ -202,7 +194,7 @@ class TestFullWorkflow:
                 context_before=["Starting application...", "Processing data..."],
                 context_after=["Failed to process item", "Shutting down..."],
                 timestamp=datetime.now(),
-                metadata={"severity": "high"}
+                metadata={"severity": "high"},
             )
         ]
 
@@ -211,10 +203,7 @@ class TestFullWorkflow:
         report = generator.generate_report(
             matches=matches,
             catalog=catalog,
-            metadata={
-                "author": {"name": "Test User", "email": "test@example.com"},
-                "description": "E2E test report"
-            }
+            metadata={"author": {"name": "Test User", "email": "test@example.com"}, "description": "E2E test report"},
         )
 
         # Verify report completeness
@@ -244,6 +233,7 @@ class TestFullWorkflow:
         """Test exporting report to markdown."""
         # Create a minimal report
         from src.domain.models import ErrorMatch
+
         matches = [
             ErrorMatch(
                 error_id="test_error",
@@ -253,7 +243,7 @@ class TestFullWorkflow:
                 context_before=[],
                 context_after=[],
                 timestamp=datetime.now(),
-                metadata={}
+                metadata={},
             )
         ]
 
@@ -271,22 +261,20 @@ class TestFullWorkflow:
                 "test_error": ErrorDefinition(
                     id="test_error",
                     pattern=PatternConfig(type="literal", pattern="ERROR"),
-                    files=[],
+                    files=["/tmp/*.log"],
                     meaning="Test error",
                     suggestion="Fix it",
                     context_lines=0,
                     next_errors=[],
-                    metadata={}
+                    metadata={},
                 )
-            }
+            },
         )
 
         # Generate report
         generator = ReportGenerator()
         report = generator.generate_report(
-            matches=matches,
-            catalog=catalog,
-            metadata={"author": {"name": "Test", "email": "test@example.com"}}
+            matches=matches, catalog=catalog, metadata={"author": {"name": "Test", "email": "test@example.com"}}
         )
 
         # Test that we can export (actual template rendering tested in unit tests)
@@ -297,6 +285,7 @@ class TestFullWorkflow:
         """Test exporting report to HTML."""
         # Similar to markdown test
         from src.domain.models import ErrorMatch
+
         matches = [
             ErrorMatch(
                 error_id="test_error",
@@ -306,7 +295,7 @@ class TestFullWorkflow:
                 context_before=[],
                 context_after=[],
                 timestamp=datetime.now(),
-                metadata={}
+                metadata={},
             )
         ]
 
@@ -324,21 +313,19 @@ class TestFullWorkflow:
                 "test_error": ErrorDefinition(
                     id="test_error",
                     pattern=PatternConfig(type="literal", pattern="ERROR"),
-                    files=[],
+                    files=["/tmp/*.log"],
                     meaning="Test error",
                     suggestion="Fix it",
                     context_lines=0,
                     next_errors=[],
-                    metadata={}
+                    metadata={},
                 )
-            }
+            },
         )
 
         generator = ReportGenerator()
         report = generator.generate_report(
-            matches=matches,
-            catalog=catalog,
-            metadata={"author": {"name": "Test", "email": "test@example.com"}}
+            matches=matches, catalog=catalog, metadata={"author": {"name": "Test", "email": "test@example.com"}}
         )
 
         assert report is not None

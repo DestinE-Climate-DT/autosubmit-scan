@@ -5,7 +5,7 @@ Tests for:
 - extract_matches_with_context: Extract ErrorMatch objects with context
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from src.domain.models import (
     ErrorDefinition,
@@ -83,12 +83,7 @@ class TestScanFileForPattern:
     def test_scan_case_insensitive_regex(self, tmp_path):
         """Should respect regex flags like IGNORECASE."""
         test_file = tmp_path / "test.log"
-        test_file.write_text(
-            "Line 1: error lowercase\n"
-            "Line 2: ERROR uppercase\n"
-            "Line 3: Error mixed case\n"
-            "Line 4: normal log\n"
-        )
+        test_file.write_text("Line 1: error lowercase\nLine 2: ERROR uppercase\nLine 3: Error mixed case\nLine 4: normal log\n")
 
         # Create error definition with case-insensitive regex
         error_def = ErrorDefinition(
@@ -113,11 +108,7 @@ class TestScanFileForPattern:
     def test_scan_no_matches_returns_empty_list(self, tmp_path):
         """Should return empty list when pattern doesn't match."""
         test_file = tmp_path / "test.log"
-        test_file.write_text(
-            "Line 1: normal log\n"
-            "Line 2: normal log\n"
-            "Line 3: normal log\n"
-        )
+        test_file.write_text("Line 1: normal log\nLine 2: normal log\nLine 3: normal log\n")
 
         # Create error definition
         error_def = ErrorDefinition(
@@ -138,10 +129,7 @@ class TestScanFileForPattern:
     def test_scan_multiple_matches_on_same_line(self, tmp_path):
         """Should report line only once even with multiple matches."""
         test_file = tmp_path / "test.log"
-        test_file.write_text(
-            "Line 1: ERROR ERROR ERROR multiple errors on one line\n"
-            "Line 2: normal log\n"
-        )
+        test_file.write_text("Line 1: ERROR ERROR ERROR multiple errors on one line\nLine 2: normal log\n")
 
         # Create error definition
         error_def = ErrorDefinition(
@@ -206,13 +194,7 @@ class TestExtractMatchesWithContext:
     def test_extract_multiple_matches(self, tmp_path):
         """Should extract multiple matches with their contexts."""
         test_file = tmp_path / "test.log"
-        test_file.write_text(
-            "Line 1: context\n"
-            "Line 2: ERROR first\n"
-            "Line 3: context\n"
-            "Line 4: ERROR second\n"
-            "Line 5: context\n"
-        )
+        test_file.write_text("Line 1: context\nLine 2: ERROR first\nLine 3: context\nLine 4: ERROR second\nLine 5: context\n")
 
         # Create error definition
         error_def = ErrorDefinition(
@@ -240,11 +222,7 @@ class TestExtractMatchesWithContext:
     def test_extract_match_at_file_start(self, tmp_path):
         """Should handle match at start of file (no context before)."""
         test_file = tmp_path / "test.log"
-        test_file.write_text(
-            "Line 1: ERROR at start\n"
-            "Line 2: context after\n"
-            "Line 3: more context\n"
-        )
+        test_file.write_text("Line 1: ERROR at start\nLine 2: context after\nLine 3: more context\n")
 
         # Create error definition
         error_def = ErrorDefinition(
@@ -268,11 +246,7 @@ class TestExtractMatchesWithContext:
     def test_extract_match_at_file_end(self, tmp_path):
         """Should handle match at end of file (no context after)."""
         test_file = tmp_path / "test.log"
-        test_file.write_text(
-            "Line 1: context before\n"
-            "Line 2: more context\n"
-            "Line 3: ERROR at end\n"
-        )
+        test_file.write_text("Line 1: context before\nLine 2: more context\nLine 3: ERROR at end\n")
 
         # Create error definition
         error_def = ErrorDefinition(
@@ -296,11 +270,7 @@ class TestExtractMatchesWithContext:
     def test_extract_with_zero_context(self, tmp_path):
         """Should extract match with zero context lines."""
         test_file = tmp_path / "test.log"
-        test_file.write_text(
-            "Line 1: context\n"
-            "Line 2: ERROR in middle\n"
-            "Line 3: context\n"
-        )
+        test_file.write_text("Line 1: context\nLine 2: ERROR in middle\nLine 3: context\n")
 
         # Create error definition with zero context
         error_def = ErrorDefinition(
@@ -361,9 +331,9 @@ class TestExtractMatchesWithContext:
         )
 
         # Extract matches
-        before_time = datetime.utcnow()
+        before_time = datetime.now(UTC)
         matches = extract_matches_with_context(str(test_file), [1], error_def)
-        after_time = datetime.utcnow()
+        after_time = datetime.now(UTC)
 
         # Should have timestamp between before and after
         assert len(matches) == 1

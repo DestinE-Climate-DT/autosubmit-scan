@@ -46,18 +46,15 @@ class TestCLICommands:
             errors={
                 "cli_test_error": ErrorDefinition(
                     id="cli_test_error",
-                    pattern=PatternConfig(
-                        type="literal",
-                        pattern="CLI_ERROR"
-                    ),
-                    files=[],
+                    pattern=PatternConfig(type="literal", pattern="CLI_ERROR"),
+                    files=["/tmp/*.log"],
                     meaning="CLI test error",
                     suggestion="Fix CLI test",
                     context_lines=2,
                     next_errors=[],
-                    metadata={"severity": "medium"}
+                    metadata={"severity": "medium"},
                 )
-            }
+            },
         )
 
         catalog_path = temp_workspace / "cli_catalog.yaml"
@@ -81,14 +78,14 @@ class TestCLICommands:
                 "test_error": ErrorDefinition(
                     id="test_error",
                     pattern=PatternConfig(type="literal", pattern="ERROR"),
-                    files=[],
+                    files=["/tmp/*.log"],
                     meaning="Test error",
                     suggestion="Fix it",
                     context_lines=0,
                     next_errors=[],
-                    metadata={}
+                    metadata={},
                 )
-            }
+            },
         )
 
         matches = [
@@ -100,15 +97,13 @@ class TestCLICommands:
                 context_before=[],
                 context_after=[],
                 timestamp=datetime.now(),
-                metadata={}
+                metadata={},
             )
         ]
 
         generator = ReportGenerator()
         report = generator.generate_report(
-            matches=matches,
-            catalog=catalog,
-            metadata={"author": {"name": "Test", "email": "test@example.com"}}
+            matches=matches, catalog=catalog, metadata={"author": {"name": "Test", "email": "test@example.com"}}
         )
 
         report_path = temp_workspace / "test_report.json"
@@ -120,11 +115,7 @@ class TestCLICommands:
     def test_cli_help(self):
         """Test that CLI shows help message."""
         # Test main help
-        result = subprocess.run(
-            ["python", "-m", "src.cli.main", "--help"],
-            capture_output=True,
-            text=True
-        )
+        result = subprocess.run(["python", "-m", "src.cli.main", "--help"], capture_output=True, text=True)
 
         # Should succeed or fail gracefully (CLI may not be fully implemented yet)
         # This is a TDD test - it will fail until we implement the CLI
@@ -137,14 +128,20 @@ class TestCLICommands:
         # This will fail until CLI is implemented - that's expected for TDD
         result = subprocess.run(
             [
-                "python", "-m", "src.cli.main", "scan",
-                "--catalog", str(simple_catalog_file),
-                "--output", str(output_dir),
-                "--cores", "1",
-                "--dryrun"
+                "python",
+                "-m",
+                "src.cli.main",
+                "scan",
+                "--catalog",
+                str(simple_catalog_file),
+                "--output",
+                str(output_dir),
+                "--cores",
+                "1",
+                "--dryrun",
             ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         # For now, we just check it doesn't crash catastrophically
@@ -157,12 +154,15 @@ class TestCLICommands:
         # View command needs special handling as it launches TUI
         result = subprocess.run(
             [
-                "python", "-m", "src.cli.main", "view",
+                "python",
+                "-m",
+                "src.cli.main",
+                "view",
                 str(test_report_file),
-                "--help"  # Get help instead of launching TUI
+                "--help",  # Get help instead of launching TUI
             ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         # For now, we just check structure
@@ -174,13 +174,18 @@ class TestCLICommands:
 
         result = subprocess.run(
             [
-                "python", "-m", "src.cli.main", "export",
+                "python",
+                "-m",
+                "src.cli.main",
+                "export",
                 str(test_report_file),
-                "--template", "markdown",
-                "--output", str(output_file)
+                "--template",
+                "markdown",
+                "--output",
+                str(output_file),
             ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         # For now, we just check structure
@@ -189,12 +194,7 @@ class TestCLICommands:
     def test_validate_command_good(self, simple_catalog_file):
         """Test validate command with valid catalog."""
         result = subprocess.run(
-            [
-                "python", "-m", "src.cli.main", "validate",
-                str(simple_catalog_file)
-            ],
-            capture_output=True,
-            text=True
+            ["python", "-m", "src.cli.main", "validate", str(simple_catalog_file)], capture_output=True, text=True
         )
 
         # Should succeed once implemented
@@ -205,14 +205,7 @@ class TestCLICommands:
         bad_file = temp_workspace / "bad.yaml"
         bad_file.write_text("invalid: [[[")
 
-        result = subprocess.run(
-            [
-                "python", "-m", "src.cli.main", "validate",
-                str(bad_file)
-            ],
-            capture_output=True,
-            text=True
-        )
+        result = subprocess.run(["python", "-m", "src.cli.main", "validate", str(bad_file)], capture_output=True, text=True)
 
         # Should fail with exit code 1 once implemented
         assert result.returncode in [0, 1, 2]
@@ -222,12 +215,7 @@ class TestCLICommands:
         output_file = temp_workspace / "new_catalog.yaml"
 
         result = subprocess.run(
-            [
-                "python", "-m", "src.cli.main", "init",
-                "--output", str(output_file)
-            ],
-            capture_output=True,
-            text=True
+            ["python", "-m", "src.cli.main", "init", "--output", str(output_file)], capture_output=True, text=True
         )
 
         # Should succeed once implemented
@@ -236,13 +224,9 @@ class TestCLICommands:
     def test_invalid_catalog_path(self):
         """Test error handling for missing catalog file."""
         result = subprocess.run(
-            [
-                "python", "-m", "src.cli.main", "scan",
-                "--catalog", "/nonexistent/catalog.yaml",
-                "--output", "/tmp/output"
-            ],
+            ["python", "-m", "src.cli.main", "scan", "--catalog", "/nonexistent/catalog.yaml", "--output", "/tmp/output"],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         # Should fail gracefully with exit code 1
@@ -253,12 +237,7 @@ class TestCLICommands:
     def test_missing_report_file(self):
         """Test error handling for missing report file."""
         result = subprocess.run(
-            [
-                "python", "-m", "src.cli.main", "view",
-                "/nonexistent/report.json"
-            ],
-            capture_output=True,
-            text=True
+            ["python", "-m", "src.cli.main", "view", "/nonexistent/report.json"], capture_output=True, text=True
         )
 
         # Should fail gracefully
@@ -282,23 +261,13 @@ class TestCLIIntegration:
 
         # Initialize catalog
         init_result = subprocess.run(
-            [
-                "python", "-m", "src.cli.main", "init",
-                "--output", str(catalog_file)
-            ],
-            capture_output=True,
-            text=True
+            ["python", "-m", "src.cli.main", "init", "--output", str(catalog_file)], capture_output=True, text=True
         )
 
         # If init succeeds, validate should also succeed
         if init_result.returncode == 0 and catalog_file.exists():
             validate_result = subprocess.run(
-                [
-                    "python", "-m", "src.cli.main", "validate",
-                    str(catalog_file)
-                ],
-                capture_output=True,
-                text=True
+                ["python", "-m", "src.cli.main", "validate", str(catalog_file)], capture_output=True, text=True
             )
             assert validate_result.returncode == 0
 
