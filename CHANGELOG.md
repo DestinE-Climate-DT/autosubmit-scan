@@ -10,6 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Complete CLI interface with commands: `scan`, `view`, `export`, `validate`, `init`, `add`, `dag`
 - Expid shortcut: run `as-scan a23i` directly without specifying `scan` command
+- **Dynamic variable extraction from local files**: Extract values from local configuration files to use in catalog file URIs
+  - Support for regex extraction (with named groups or first group)
+  - Support for line-based extraction (get specific line number)
+  - Support for YAML path extraction (dot notation like `config.platforms.host`)
+  - Support for JSON path extraction (JSONPath expressions)
+  - Automatic template rendering in file URIs using Jinja2 (e.g., `ssh://{{ host }}/logs/*.log`)
+  - Fallback to default values when extraction fails
+  - Enables automatic host detection for multi-platform workflows (e.g., LUMI vs MN5)
 - Pattern matching system supporting literal, regex, and callable patterns
 - Railway pattern for conditional error chaining and follow-up error detection
 - Snakemake workflow orchestration with checkpoint-based execution
@@ -21,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Error catalog validation with Pydantic v2 models
 - File fingerprinting and caching to avoid re-scanning unchanged files
 - CI/CD setup scripts for MinIO, SFTP, and FTP testing
-- Comprehensive test suite (286 tests: unit, integration, e2e)
+- Comprehensive test suite (311 tests: 25 new tests for variable extraction)
 - Test fixtures for SLURM errors (OOM, timeout) and application errors
 - Tab completion support for CLI
 
@@ -52,7 +60,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - loguru for structured logging
 
 ### Testing
-- 286 passing tests (0 failures, 0 errors)
+- 311 passing tests (19 unit + 6 integration for variable extraction)
 - 40 remote integration tests (skipped without `--remote` flag)
 - Test coverage across unit, integration, and e2e levels
 - CI setup scripts for testing with MinIO, SFTP, and FTP services

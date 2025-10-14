@@ -140,6 +140,42 @@ class ErrorCondition(BaseModel):
     when: ConditionSpec = Field(..., description="Condition for triggering next error")
 
 
+class VariableExtractor(BaseModel):
+    """Configuration for extracting a variable from a file.
+
+    Supports extracting values from local files using various methods:
+    - regex: Extract using regular expression pattern (group 1 or named 'value')
+    - line: Extract specific line number
+    - json_path: Extract from JSON file using JSONPath expression
+    - yaml_path: Extract from YAML file using dot notation path (e.g., 'config.platforms.host')
+    """
+
+    model_config = {"validate_assignment": True}
+
+    source: str = Field("file", description="Source type (currently only 'file' supported)")
+    path: str = Field(..., description="Path to local file to read")
+    method: str = Field("regex", description="Extraction method: 'regex', 'line', 'json_path', 'yaml_path'")
+    pattern: str | None = Field(None, description="Pattern for regex extraction, JSONPath, or YAML path")
+    line_number: int | None = Field(None, description="Line number for 'line' method (1-indexed)")
+    default: str | None = Field(None, description="Default value if extraction fails")
+    strip: bool = Field(True, description="Strip whitespace from extracted value")
+
+    @model_validator(mode="after")
+    def validate_method_parameters(self) -> "VariableExtractor":
+        """Validate that required parameters are present for each method."""
+        if self.method == "regex" and not self.pattern:
+            raise ValueError("'pattern' is required when method is 'regex'")
+        if self.method == "line" and self.line_number is None:
+            raise ValueError("'line_number' is required when method is 'line'")
+        if self.method == "json_path" and not self.pattern:
+            raise ValueError("'pattern' (JSONPath) is required when method is 'json_path'")
+        if self.method == "yaml_path" and not self.pattern:
+            raise ValueError("'pattern' (YAML path) is required when method is 'yaml_path'")
+        if self.method not in ["regex", "line", "json_path", "yaml_path"]:
+            raise ValueError(f"Invalid method: {self.method}. Must be 'regex', 'line', 'json_path', or 'yaml_path'")
+        return self
+
+
 class CatalogMetadata(BaseModel):
     """Metadata for error catalog."""
 
@@ -150,6 +186,9 @@ class CatalogMetadata(BaseModel):
     author: str = Field(..., description="Catalog author")
     created: datetime = Field(..., description="Creation timestamp")
     updated: datetime = Field(..., description="Last update timestamp")
+    variables: dict[str, VariableExtractor] | None = Field(
+        None, description="Dynamic variable extractors for template rendering"
+    )
 
 
 class ErrorDefinition(BaseModel):

@@ -14,6 +14,8 @@ from typing import Any
 
 import fsspec
 import yaml
+from jinja2 import Template
+from loguru import logger
 
 from src.domain.models import ErrorCatalog
 
@@ -42,11 +44,14 @@ def load_catalog(path: str) -> ErrorCatalog:
     - S3: s3://bucket/path/to/catalog.yaml
     - HTTP: https://example.com/catalog.yaml
 
+    If the catalog defines variables in metadata.variables, they will be extracted
+    from local files and used to render Jinja2 templates in file URIs.
+
     Args:
         path: Path to YAML file or fsspec URI
 
     Returns:
-        ErrorCatalog instance
+        ErrorCatalog instance with rendered file URIs
 
     Raises:
         FileNotFoundError: If file doesn't exist
@@ -80,6 +85,12 @@ def load_catalog(path: str) -> ErrorCatalog:
         if "updated" in data["metadata"]:
             if isinstance(data["metadata"]["updated"], str):
                 data["metadata"]["updated"] = datetime.fromisoformat(data["metadata"]["updated"])
+
+    # Extract variables and render templates if defined
+    if "metadata" in data and "variables" in data["metadata"] and data["metadata"]["variables"]:
+        logger.info(f"Extracting {len(data['metadata']['variables'])} catalog variables")
+        variables = _extract_and_render_variables(data)
+        data = _render_catalog_templates(data, variables)
 
     return ErrorCatalog(**data)
 
@@ -204,3 +215,56 @@ def jsonld_to_catalog(data: dict[str, Any]) -> ErrorCatalog:
                 catalog_data["metadata"]["updated"] = datetime.fromisoformat(catalog_data["metadata"]["updated"])
 
     return ErrorCatalog(**catalog_data)
+
+
+def _extract_and_render_variables(data: dict[str, Any]) -> dict[str, str]:
+    """Extract variables from catalog metadata.
+
+    Args:
+        data: Catalog data dictionary
+
+    Returns:
+        Dictionary of variable name -> extracted value
+    """
+    from src.domain.models import VariableExtractor
+    from src.domain.variable_extractor import extract_catalog_variables
+
+    # Parse variable extractors
+    extractors = {}
+    for var_name, var_config in data["metadata"]["variables"].items():
+        extractors[var_name] = VariableExtractor(**var_config)
+
+    # Extract all variables
+    return extract_catalog_variables(extractors)
+
+
+def _render_catalog_templates(data: dict[str, Any], variables: dict[str, str]) -> dict[str, Any]:
+    """Render Jinja2 templates in catalog file URIs.
+
+    Args:
+        data: Catalog data dictionary
+        variables: Dictionary of variables to use for rendering
+
+    Returns:
+        Catalog data with rendered templates
+    """
+    logger.debug(f"Rendering catalog templates with variables: {variables}")
+
+    # Render file URIs in each error definition
+    if "errors" in data:
+        for error_id, error_data in data["errors"].items():
+            if "files" in error_data:
+                rendered_files = []
+                for file_uri in error_data["files"]:
+                    try:
+                        template = Template(file_uri)
+                        rendered = template.render(**variables)
+                        rendered_files.append(rendered)
+                        if rendered != file_uri:
+                            logger.debug(f"  {error_id}: '{file_uri}' -> '{rendered}'")
+                    except Exception as e:
+                        logger.warning(f"Failed to render template '{file_uri}' for error '{error_id}': {e}")
+                        rendered_files.append(file_uri)  # Keep original on error
+                error_data["files"] = rendered_files
+
+    return data
