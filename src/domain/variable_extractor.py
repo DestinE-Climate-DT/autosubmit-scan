@@ -1,6 +1,10 @@
-"""Variable extraction from local and remote files.
+"""Variable extraction from files and environment.
 
-Supports multiple extraction methods:
+Source types:
+- file: Extract from local or remote files
+- env: Extract from environment variables
+
+File extraction methods:
 - regex: Extract using regular expression
 - line: Extract specific line number
 - json_path: Extract from JSON using JSONPath
@@ -16,6 +20,7 @@ Supports any fsspec-compatible URI for file sources:
 """
 
 import json
+import os
 import re
 from pathlib import Path
 from typing import Any
@@ -83,7 +88,11 @@ def extract_variable(extractor: VariableExtractor) -> str:
         ValueError: If extraction fails and no default is provided
     """
     try:
-        # Read file content (local or remote)
+        # Handle environment variable extraction
+        if extractor.source == "env":
+            return _extract_from_env(extractor)
+
+        # Handle file extraction (local or remote)
         content = _read_file_content(extractor.path)
 
         # Apply extraction method
@@ -100,9 +109,31 @@ def extract_variable(extractor: VariableExtractor) -> str:
 
     except Exception as e:
         if extractor.default is not None:
-            logger.warning(f"Variable extraction failed from {extractor.path}: {e}, using default: {extractor.default}")
+            source_desc = f"environment variable '{extractor.pattern}'" if extractor.source == "env" else f"file {extractor.path}"
+            logger.warning(f"Variable extraction failed from {source_desc}: {e}, using default: {extractor.default}")
             return extractor.default
-        raise ValueError(f"Variable extraction failed from {extractor.path}: {e}") from e
+        raise ValueError(f"Variable extraction failed: {e}") from e
+
+
+def _extract_from_env(extractor: VariableExtractor) -> str:
+    """Extract value from environment variable.
+
+    Args:
+        extractor: Variable extractor configuration with pattern as env var name
+
+    Returns:
+        Environment variable value
+
+    Raises:
+        ValueError: If environment variable is not set
+    """
+    env_var_name = extractor.pattern
+    value = os.environ.get(env_var_name)
+
+    if value is None:
+        raise ValueError(f"Environment variable '{env_var_name}' is not set")
+
+    return value.strip() if extractor.strip else value
 
 
 def _extract_with_regex(content: str, extractor: VariableExtractor) -> str:
@@ -190,7 +221,13 @@ def extract_catalog_variables(extractors: dict[str, VariableExtractor]) -> dict[
         try:
             value = extract_variable(extractor)
             variables[var_name] = value
-            logger.debug(f"Extracted variable '{var_name}' from {extractor.path}: {value}")
+
+            # Log extraction with appropriate source description
+            if extractor.source == "env":
+                logger.debug(f"Extracted variable '{var_name}' from environment variable '{extractor.pattern}': {value}")
+            else:
+                logger.debug(f"Extracted variable '{var_name}' from {extractor.path}: {value}")
+
         except Exception as e:
             logger.error(f"Failed to extract variable '{var_name}': {e}")
             raise

@@ -141,9 +141,13 @@ class ErrorCondition(BaseModel):
 
 
 class VariableExtractor(BaseModel):
-    """Configuration for extracting a variable from a file.
+    """Configuration for extracting a variable from a file or environment.
 
-    Supports extracting values from local or remote files using various methods:
+    Source types:
+    - file: Extract from local or remote files using various methods
+    - env: Extract from environment variable
+
+    File extraction methods:
     - regex: Extract using regular expression pattern (group 1 or named 'value')
     - line: Extract specific line number
     - json_path: Extract from JSON file using JSONPath expression
@@ -156,31 +160,49 @@ class VariableExtractor(BaseModel):
     - SSH: ssh://user@host/path/to/file
     - SFTP: sftp://user@host/path/to/file
     - HTTP/HTTPS: https://example.com/path/to/file
+
+    Environment variable extraction:
+    - pattern: Environment variable name (e.g., 'AUTOSUBMIT_EXPID')
+    - default: Default value if environment variable is not set
     """
 
     model_config = {"validate_assignment": True}
 
-    source: str = Field("file", description="Source type (currently only 'file' supported)")
-    path: str = Field(..., description="Local path or fsspec URI to file")
+    source: str = Field("file", description="Source type: 'file' or 'env'")
+    path: str | None = Field(None, description="Local path or fsspec URI to file (required for source='file')")
     method: str = Field("regex", description="Extraction method: 'regex', 'line', 'json_path', 'yaml_path'")
-    pattern: str | None = Field(None, description="Pattern for regex extraction, JSONPath, or YAML path")
+    pattern: str | None = Field(None, description="Pattern for regex extraction, JSONPath, YAML path, or env var name")
     line_number: int | None = Field(None, description="Line number for 'line' method (1-indexed)")
     default: str | None = Field(None, description="Default value if extraction fails")
     strip: bool = Field(True, description="Strip whitespace from extracted value")
 
     @model_validator(mode="after")
     def validate_method_parameters(self) -> "VariableExtractor":
-        """Validate that required parameters are present for each method."""
-        if self.method == "regex" and not self.pattern:
-            raise ValueError("'pattern' is required when method is 'regex'")
-        if self.method == "line" and self.line_number is None:
-            raise ValueError("'line_number' is required when method is 'line'")
-        if self.method == "json_path" and not self.pattern:
-            raise ValueError("'pattern' (JSONPath) is required when method is 'json_path'")
-        if self.method == "yaml_path" and not self.pattern:
-            raise ValueError("'pattern' (YAML path) is required when method is 'yaml_path'")
-        if self.method not in ["regex", "line", "json_path", "yaml_path"]:
-            raise ValueError(f"Invalid method: {self.method}. Must be 'regex', 'line', 'json_path', or 'yaml_path'")
+        """Validate that required parameters are present for each source and method."""
+        # Validate source-specific requirements
+        if self.source == "file":
+            if not self.path:
+                raise ValueError("'path' is required when source is 'file'")
+
+            # Validate file extraction method requirements
+            if self.method == "regex" and not self.pattern:
+                raise ValueError("'pattern' is required when method is 'regex'")
+            if self.method == "line" and self.line_number is None:
+                raise ValueError("'line_number' is required when method is 'line'")
+            if self.method == "json_path" and not self.pattern:
+                raise ValueError("'pattern' (JSONPath) is required when method is 'json_path'")
+            if self.method == "yaml_path" and not self.pattern:
+                raise ValueError("'pattern' (YAML path) is required when method is 'yaml_path'")
+            if self.method not in ["regex", "line", "json_path", "yaml_path"]:
+                raise ValueError(f"Invalid method: {self.method}. Must be 'regex', 'line', 'json_path', or 'yaml_path'")
+
+        elif self.source == "env":
+            if not self.pattern:
+                raise ValueError("'pattern' (environment variable name) is required when source is 'env'")
+
+        else:
+            raise ValueError(f"Invalid source: {self.source}. Must be 'file' or 'env'")
+
         return self
 
 
