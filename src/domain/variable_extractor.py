@@ -224,6 +224,17 @@ def extract_catalog_variables(extractors: dict[str, VariableExtractor]) -> dict[
 
     for var_name, extractor in extractors.items():
         try:
+            # Check for environment variable override (e.g., AUTOSUBMIT_HPCUSER)
+            # This allows users to override any variable regardless of source type
+            env_override_name = f"AUTOSUBMIT_{var_name.upper()}"
+            env_override_value = os.environ.get(env_override_name)
+
+            if env_override_value is not None:
+                value = env_override_value
+                variables[var_name] = value
+                logger.debug(f"Extracted variable '{var_name}' from environment override '{env_override_name}': {value}")
+                continue
+
             # Render templates in extractor path using previously extracted variables
             if extractor.source == "file" and extractor.path:
                 try:
