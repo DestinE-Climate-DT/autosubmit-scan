@@ -166,15 +166,12 @@ def run_default_scan(expid: str):
     """
     logger.info(f"Running default scan for experiment: {expid}")
 
-    # Set environment variables for catalog's dynamic variable extraction
-    # The catalog will extract all other details from Autosubmit metadata
+    # Set environment variable for catalog's dynamic variable extraction
+    # The catalog will extract all other details (including username) from Autosubmit metadata
     os.environ["AUTOSUBMIT_EXPID"] = expid
 
-    # Try to get HPC username from environment, default to current user
-    if "AUTOSUBMIT_HPCUSER" not in os.environ:
-        # Default to current user if not set
-        os.environ["AUTOSUBMIT_HPCUSER"] = os.getenv("USER", "unknown")
-        logger.info(f"Using HPC username: {os.environ['AUTOSUBMIT_HPCUSER']} (override with AUTOSUBMIT_HPCUSER)")
+    # Note: HPCUSER is now extracted from experiment_data.yml automatically
+    # Users can still override by setting: export AUTOSUBMIT_HPCUSER=myusername
 
     # Try to load catalog from remote URI (no template rendering needed - catalog has dynamic vars)
     catalog_path = None
