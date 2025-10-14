@@ -206,6 +206,9 @@ def _extract_yaml_path(content: str, extractor: VariableExtractor) -> str:
 def extract_catalog_variables(extractors: dict[str, VariableExtractor]) -> dict[str, str]:
     """Extract all variables defined in catalog metadata.
 
+    Variables are extracted in order, and later variables can reference earlier ones
+    using Jinja2 template syntax in their paths (e.g., {{ expid }}).
+
     Args:
         extractors: Dictionary of variable name -> extractor config
 
@@ -215,10 +218,32 @@ def extract_catalog_variables(extractors: dict[str, VariableExtractor]) -> dict[
     Raises:
         ValueError: If any required extraction fails
     """
+    from jinja2 import Template
+
     variables = {}
 
     for var_name, extractor in extractors.items():
         try:
+            # Render templates in extractor path using previously extracted variables
+            if extractor.source == "file" and extractor.path:
+                try:
+                    template = Template(extractor.path)
+                    rendered_path = template.render(**variables)
+                    if rendered_path != extractor.path:
+                        logger.debug(f"Rendered path template for '{var_name}': {extractor.path} -> {rendered_path}")
+                        # Create a new extractor with rendered path
+                        extractor = VariableExtractor(
+                            source=extractor.source,
+                            path=rendered_path,
+                            method=extractor.method,
+                            pattern=extractor.pattern,
+                            line_number=extractor.line_number,
+                            default=extractor.default,
+                            strip=extractor.strip,
+                        )
+                except Exception as e:
+                    logger.warning(f"Failed to render path template for '{var_name}': {e}, using original path")
+
             value = extract_variable(extractor)
             variables[var_name] = value
 

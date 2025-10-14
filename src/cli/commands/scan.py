@@ -14,6 +14,7 @@ import yaml
 from loguru import logger
 from pydantic import ValidationError
 
+from src.cli.types import FsspecPath
 from src.domain.catalog import load_catalog
 from src.reporting.jsonld import ReportGenerator
 
@@ -22,8 +23,8 @@ from src.reporting.jsonld import ReportGenerator
 @click.option(
     "--catalog",
     required=True,
-    type=click.Path(exists=True, dir_okay=False, resolve_path=True),
-    help="Path to error catalog YAML file",
+    type=FsspecPath(exists=True, dir_okay=False),
+    help="Path or URI to error catalog YAML file (supports local paths, github://, ssh://, s3://, etc.)",
 )
 @click.option(
     "--output",
@@ -34,7 +35,8 @@ from src.reporting.jsonld import ReportGenerator
 @click.option("--cores", default=4, type=int, help="Number of CPU cores for Snakemake [default: 4]")
 @click.option("--dryrun", is_flag=True, help="Show workflow plan without executing")
 @click.option("--force", is_flag=True, help="Force re-execution of all rules")
-def scan(catalog, output, cores, dryrun, force):
+@click.option("--verbose", "-v", count=True, help="Increase verbosity (can be repeated: -v for DEBUG, -vv for TRACE)")
+def scan(catalog, output, cores, dryrun, force, verbose):
     """Run error scanning workflow.
 
     This command executes the full scanning pipeline:
@@ -50,6 +52,16 @@ def scan(catalog, output, cores, dryrun, force):
         $ autosubmit-scan scan --catalog errors.yaml --output ./results --cores 8
     """
     try:
+        # Set log level based on verbose flag
+        # Remove existing handlers and reconfigure with new level
+        logger.remove()
+        if verbose >= 2:
+            logger.add(sys.stderr, level="TRACE", format="<level>{level:8}</level> | <level>{message}</level>")
+        elif verbose == 1:
+            logger.add(sys.stderr, level="DEBUG", format="<level>{level:8}</level> | <level>{message}</level>")
+        else:
+            logger.add(sys.stderr, level="INFO", format="<level>{level:8}</level> | <level>{message}</level>")
+
         # Load and validate catalog
         logger.info(f"Loading catalog from {catalog}")
         try:
@@ -67,6 +79,25 @@ def scan(catalog, output, cores, dryrun, force):
             sys.exit(1)
 
         logger.success(f"Loaded catalog '{error_catalog.metadata.name}' with {len(error_catalog.errors)} error definitions")
+
+        # Debug output for verbose mode
+        if verbose >= 1:
+            logger.debug("=" * 80)
+            logger.debug("RENDERED CATALOG")
+            logger.debug("=" * 80)
+            logger.debug(f"Variables extracted: {error_catalog.metadata.variables if error_catalog.metadata.variables else 'None'}")
+            logger.debug("")
+            for error_id, error_def in error_catalog.errors.items():
+                logger.debug(f"Error: {error_id}")
+                logger.debug(f"  Pattern: {error_def.pattern.type} - {error_def.pattern.pattern}")
+                logger.debug(f"  Files ({len(error_def.files)}):")
+                for file_uri in error_def.files[:3]:  # Show first 3
+                    logger.debug(f"    - {file_uri}")
+                if len(error_def.files) > 3:
+                    logger.debug(f"    ... and {len(error_def.files) - 3} more")
+                logger.debug(f"  Meaning: {error_def.meaning}")
+                logger.debug("")
+            logger.debug("=" * 80)
 
         # Create output directories
         output_path = Path(output)
