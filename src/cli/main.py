@@ -75,15 +75,15 @@ def cli(verbose, quiet):
         logger.add(sys.stderr, level="ERROR", colorize=True)
 
 
-# Import command modules
-from src.cli.commands.add import add
-from src.cli.commands.dag import dag
-from src.cli.commands.default import default
-from src.cli.commands.export import export
-from src.cli.commands.init import init
-from src.cli.commands.scan import scan
-from src.cli.commands.validate import validate
-from src.cli.commands.view import view
+# Import command modules (must be after cli group definition)
+from src.cli.commands.add import add  # noqa: E402
+from src.cli.commands.dag import dag  # noqa: E402
+from src.cli.commands.default import default  # noqa: E402
+from src.cli.commands.export import export  # noqa: E402
+from src.cli.commands.init import init  # noqa: E402
+from src.cli.commands.scan import scan  # noqa: E402
+from src.cli.commands.validate import validate  # noqa: E402
+from src.cli.commands.view import view  # noqa: E402
 
 # Register commands
 cli.add_command(scan)
