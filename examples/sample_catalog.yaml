@@ -7,19 +7,42 @@ metadata:
   author: "Error Scan Team"
   created: "2024-01-01T00:00:00+00:00"
   updated: "2024-01-01T00:00:00+00:00"
+  variables:
+    # Example: Extract experiment metadata from remote Autosubmit installation
+    # This demonstrates extracting configuration from a remote host via SSH
+    ssh_user:
+      source: "file"
+      path: "~/.ssh/config"
+      method: "regex"
+      pattern: "Host.*climatedt-wf.*\\n.*\\n.*User\\s+(\\S+)"
+      default: "pgierz"
+    experiment_id:
+      source: "file"
+      path: "ssh://climatedt-wf/appl/AS/AUTOSUBMIT_DATA/a2sg/conf/minimal.yml"
+      method: "yaml_path"
+      pattern: "DEFAULT.EXPID"
+      default: "a2sg"
+    platform_name:
+      source: "file"
+      path: "ssh://climatedt-wf/appl/AS/AUTOSUBMIT_DATA/a2sg/conf/minimal.yml"
+      method: "yaml_path"
+      pattern: "DEFAULT.HPCARCH"
+      default: "unknown"
 
 errors:
   # Example 1: SLURM Out of Memory Error
-  # Demonstrates: literal pattern, S3 URIs, railway pattern with conditions
+  # Demonstrates: literal pattern, dynamic SSH URIs with variables, railway pattern with conditions
   slurm_oom:
     id: "slurm_oom"
     pattern:
       type: "literal"
       pattern: "OOM killed"
     files:
+      - "ssh://{{ ssh_user }}@climatedt-wf/appl/AS/AUTOSUBMIT_DATA/{{ experiment_id }}/tmp/LOG_{{ experiment_id }}/**/*.out"
+      - "ssh://{{ ssh_user }}@climatedt-wf/appl/AS/AUTOSUBMIT_DATA/{{ experiment_id }}/tmp/LOG_{{ experiment_id }}/**/*.err"
       - "s3://compute-logs/slurm/**/*.out"
       - "s3://compute-logs/slurm/**/*.err"
-    meaning: "Job was killed due to out-of-memory condition"
+    meaning: "Job was killed due to out-of-memory condition on platform: {{ platform_name }}"
     context_lines: 10
     suggestion: "Increase memory allocation in job script using #SBATCH --mem=<amount>"
     next_errors:
