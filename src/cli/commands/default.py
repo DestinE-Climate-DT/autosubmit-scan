@@ -19,7 +19,7 @@ from src.domain.templates import load_template, render_template
 # Default catalog template URI - can be overridden with environment variable
 DEFAULT_TEMPLATE_URI = os.getenv(
     "AUTOSUBMIT_SCAN_DEFAULT_TEMPLATE",
-    "github://DestinE-Climate-DT:autosubmit-scan-error-catalogs@main/templates/default_autosubmit.yaml",
+    "github://DestinE-Climate-DT:autosubmit-scan-error-catalogs@test/dynamic-variables/templates/default_autosubmit.yaml",
 )
 
 # ⚠️ INTERNAL FALLBACK TEMPLATE - DO NOT EDIT ⚠️
@@ -166,37 +166,48 @@ def run_default_scan(expid: str):
     """
     logger.info(f"Running default scan for experiment: {expid}")
 
-    # Get template variables
-    variables = get_default_template_variables(expid)
-    logger.debug(f"Template variables: {variables}")
+    # Set environment variables for catalog's dynamic variable extraction
+    # The catalog will extract all other details from Autosubmit metadata
+    os.environ["AUTOSUBMIT_EXPID"] = expid
 
-    # Try to load template from remote URI, fall back to inline template
-    template_str = None
-    template_source = None
+    # Try to get HPC username from environment, default to current user
+    if "AUTOSUBMIT_HPCUSER" not in os.environ:
+        # Default to current user if not set
+        os.environ["AUTOSUBMIT_HPCUSER"] = os.getenv("USER", "unknown")
+        logger.info(f"Using HPC username: {os.environ['AUTOSUBMIT_HPCUSER']} (override with AUTOSUBMIT_HPCUSER)")
+
+    # Try to load catalog from remote URI (no template rendering needed - catalog has dynamic vars)
+    catalog_path = None
+    catalog_source = None
 
     try:
-        logger.info(f"Loading template from: {DEFAULT_TEMPLATE_URI}")
-        template_str = load_template(DEFAULT_TEMPLATE_URI)
-        template_source = DEFAULT_TEMPLATE_URI
-        logger.success("Loaded template from remote repository")
+        logger.info(f"Loading catalog from: {DEFAULT_TEMPLATE_URI}")
+        catalog_yaml = load_template(DEFAULT_TEMPLATE_URI)
+        catalog_source = DEFAULT_TEMPLATE_URI
+        logger.success("Loaded catalog from remote repository")
+
+        # Save to temporary file
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            catalog_path = Path(f.name)
+            f.write(catalog_yaml)
+
     except Exception as e:
-        logger.warning(f"Failed to load remote template: {e}")
+        logger.warning(f"Failed to load remote catalog: {e}")
         logger.warning("Falling back to internal emergency template")
-        template_str = FALLBACK_CATALOG_TEMPLATE
-        template_source = "internal fallback"
 
-    # Render catalog template
-    try:
-        catalog_yaml = render_template(template_str, variables)
-        logger.debug(f"Rendered template from: {template_source}")
-    except ValueError as e:
-        logger.error(f"Failed to render catalog: {e}")
-        sys.exit(1)
+        # Fall back to old template with rendering
+        variables = get_default_template_variables(expid)
+        try:
+            catalog_yaml = render_template(FALLBACK_CATALOG_TEMPLATE, variables)
+            catalog_source = "internal fallback"
+        except ValueError as e:
+            logger.error(f"Failed to render fallback catalog: {e}")
+            sys.exit(1)
 
-    # Create temporary catalog file
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
-        catalog_path = Path(f.name)
-        f.write(catalog_yaml)
+        # Save to temporary file
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            catalog_path = Path(f.name)
+            f.write(catalog_yaml)
 
     logger.debug(f"Created temporary catalog: {catalog_path}")
 
