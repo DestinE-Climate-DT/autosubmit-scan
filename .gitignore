@@ -246,3 +246,6 @@ execution_graph.png
 # Scan results (local testing)
 results/
 output/
+
+# Claude Code local settings
+.claude/
