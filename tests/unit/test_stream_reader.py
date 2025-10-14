@@ -22,7 +22,7 @@ class TestFileStream:
     @pytest.fixture
     def temp_file(self):
         """Create a temporary file with test content."""
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.log') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".log") as f:
             f.write("Line 1: First line\n")
             f.write("Line 2: Second line\n")
             f.write("Line 3: Third line\n")
@@ -38,7 +38,7 @@ class TestFileStream:
     @pytest.fixture
     def empty_file(self):
         """Create an empty temporary file."""
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.log') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".log") as f:
             temp_path = f.name
 
         yield temp_path
@@ -48,7 +48,7 @@ class TestFileStream:
     @pytest.fixture
     def single_line_file(self):
         """Create a single-line file."""
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.log') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".log") as f:
             f.write("Only one line")
             temp_path = f.name
 
@@ -59,9 +59,9 @@ class TestFileStream:
     @pytest.fixture
     def large_file(self):
         """Create a large file for streaming tests."""
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.log') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".log") as f:
             for i in range(10000):
-                f.write(f"Line {i+1}: This is line number {i+1}\n")
+                f.write(f"Line {i + 1}: This is line number {i + 1}\n")
             temp_path = f.name
 
         yield temp_path

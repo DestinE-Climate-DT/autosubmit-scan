@@ -30,16 +30,16 @@ def load_callable(callable_string: str) -> Callable:
         >>> func = load_callable("mypackage.mymodule:my_function")
     """
     if ":" not in callable_string:
-        raise ValueError(f"Invalid callable format: {callable_string}. " "Must be in 'module:function' format")
+        raise ValueError(f"Invalid callable format: {callable_string}. Must be in 'module:function' format")
 
     parts = callable_string.split(":")
     if len(parts) != 2:
-        raise ValueError(f"Invalid callable format: {callable_string}. " "Must contain exactly one ':' separator")
+        raise ValueError(f"Invalid callable format: {callable_string}. Must contain exactly one ':' separator")
 
     module_path, function_name = parts
 
     if not module_path or not function_name:
-        raise ValueError(f"Invalid callable format: {callable_string}. " "Both module path and function name must be non-empty")
+        raise ValueError(f"Invalid callable format: {callable_string}. Both module path and function name must be non-empty")
 
     # Import the module
     try:

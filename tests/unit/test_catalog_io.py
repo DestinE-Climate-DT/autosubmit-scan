@@ -60,13 +60,7 @@ errors:
         catalog = ErrorCatalog(
             version="1.0.0",
             schema_version="1.0.0",
-            metadata=CatalogMetadata(
-                name="Test Catalog",
-                description="Test",
-                author="Author",
-                created=now,
-                updated=now
-            ),
+            metadata=CatalogMetadata(name="Test Catalog", description="Test", author="Author", created=now, updated=now),
             errors={
                 "error1": ErrorDefinition(
                     id="error1",
@@ -74,9 +68,9 @@ errors:
                     files=["/var/log/*.log"],
                     meaning="An error",
                     context_lines=3,
-                    suggestion="Fix it"
+                    suggestion="Fix it",
                 )
-            }
+            },
         )
 
         catalog_file = tmp_path / "output.yaml"
@@ -106,33 +100,20 @@ errors:
             version="2.1.3",
             schema_version="1.0.0",
             metadata=CatalogMetadata(
-                name="Round Trip Test",
-                description="Testing round-trip",
-                author="Test Author",
-                created=now,
-                updated=now
+                name="Round Trip Test", description="Testing round-trip", author="Test Author", created=now, updated=now
             ),
             errors={
                 "error1": ErrorDefinition(
                     id="error1",
-                    pattern=PatternMatcher(
-                        type=PatternType.REGEX,
-                        pattern=r"ERROR:\s+\w+",
-                        flags=["IGNORECASE"]
-                    ),
+                    pattern=PatternMatcher(type=PatternType.REGEX, pattern=r"ERROR:\s+\w+", flags=["IGNORECASE"]),
                     files=["s3://bucket/logs/*.log"],
                     meaning="An error occurred",
                     context_lines=5,
                     suggestion="Check logs",
-                    next_errors=[
-                        ErrorCondition(
-                            error_id="error2",
-                            when=ConditionSpec(type=ConditionType.ALWAYS)
-                        )
-                    ],
-                    metadata={"severity": "high"}
+                    next_errors=[ErrorCondition(error_id="error2", when=ConditionSpec(type=ConditionType.ALWAYS))],
+                    metadata={"severity": "high"},
                 )
-            }
+            },
         )
 
         catalog_file = tmp_path / "roundtrip.yaml"
@@ -247,13 +228,7 @@ class TestJSONLDSerialization:
         catalog = ErrorCatalog(
             version="1.0.0",
             schema_version="1.0.0",
-            metadata=CatalogMetadata(
-                name="Test Catalog",
-                description="Test",
-                author="Author",
-                created=now,
-                updated=now
-            ),
+            metadata=CatalogMetadata(name="Test Catalog", description="Test", author="Author", created=now, updated=now),
             errors={
                 "error1": ErrorDefinition(
                     id="error1",
@@ -261,9 +236,9 @@ class TestJSONLDSerialization:
                     files=["/var/log/*.log"],
                     meaning="An error",
                     context_lines=3,
-                    suggestion="Fix it"
+                    suggestion="Fix it",
                 )
-            }
+            },
         )
 
         jsonld = catalog_to_jsonld(catalog)
@@ -284,10 +259,7 @@ class TestJSONLDSerialization:
         from src.domain.models import PatternType
 
         jsonld_data = {
-            "@context": {
-                "@vocab": "https://schema.org/",
-                "error_scan": "https://destine.example/error-scan/schema#"
-            },
+            "@context": {"@vocab": "https://schema.org/", "error_scan": "https://destine.example/error-scan/schema#"},
             "@type": "ErrorCatalog",
             "@id": "urn:uuid:12345",
             "version": "1.0.0",
@@ -297,22 +269,19 @@ class TestJSONLDSerialization:
                 "description": "Test",
                 "author": "Author",
                 "created": "2024-01-01T00:00:00",
-                "updated": "2024-01-01T00:00:00"
+                "updated": "2024-01-01T00:00:00",
             },
             "errors": {
                 "error1": {
                     "id": "error1",
-                    "pattern": {
-                        "type": "literal",
-                        "pattern": "ERROR"
-                    },
+                    "pattern": {"type": "literal", "pattern": "ERROR"},
                     "files": ["/var/log/*.log"],
                     "meaning": "An error",
                     "context_lines": 3,
                     "suggestion": "Fix it",
-                    "next_errors": []
+                    "next_errors": [],
                 }
-            }
+            },
         }
 
         catalog = jsonld_to_catalog(jsonld_data)
@@ -330,13 +299,7 @@ class TestJSONLDSerialization:
         original = ErrorCatalog(
             version="1.0.0",
             schema_version="1.0.0",
-            metadata=CatalogMetadata(
-                name="Round Trip",
-                description="Test",
-                author="Author",
-                created=now,
-                updated=now
-            ),
+            metadata=CatalogMetadata(name="Round Trip", description="Test", author="Author", created=now, updated=now),
             errors={
                 "error1": ErrorDefinition(
                     id="error1",
@@ -344,9 +307,9 @@ class TestJSONLDSerialization:
                     files=["s3://bucket/*.log"],
                     meaning="Error",
                     context_lines=5,
-                    suggestion="Fix"
+                    suggestion="Fix",
                 )
-            }
+            },
         )
 
         jsonld = catalog_to_jsonld(original)
@@ -372,13 +335,7 @@ class TestSchemaValidation:
         catalog = ErrorCatalog(
             version="1.0.0",
             schema_version="1.0.0",
-            metadata=CatalogMetadata(
-                name="Schema Test",
-                description="Test",
-                author="Author",
-                created=now,
-                updated=now
-            ),
+            metadata=CatalogMetadata(name="Schema Test", description="Test", author="Author", created=now, updated=now),
             errors={
                 "error1": ErrorDefinition(
                     id="error1",
@@ -386,9 +343,9 @@ class TestSchemaValidation:
                     files=["/var/log/*.log"],
                     meaning="An error",
                     context_lines=3,
-                    suggestion="Fix it"
+                    suggestion="Fix it",
                 )
-            }
+            },
         )
 
         # Save as YAML
@@ -397,13 +354,13 @@ class TestSchemaValidation:
 
         # Convert to JSON for schema validation
         json_file = tmp_path / "catalog.json"
-        catalog_dict = catalog.model_dump(mode='json', exclude_none=True)
+        catalog_dict = catalog.model_dump(mode="json", exclude_none=True)
 
         # Convert datetime objects to ISO format strings with timezone
-        if isinstance(catalog_dict['metadata']['created'], datetime):
-            catalog_dict['metadata']['created'] = catalog_dict['metadata']['created'].isoformat()
-        if isinstance(catalog_dict['metadata']['updated'], datetime):
-            catalog_dict['metadata']['updated'] = catalog_dict['metadata']['updated'].isoformat()
+        if isinstance(catalog_dict["metadata"]["created"], datetime):
+            catalog_dict["metadata"]["created"] = catalog_dict["metadata"]["created"].isoformat()
+        if isinstance(catalog_dict["metadata"]["updated"], datetime):
+            catalog_dict["metadata"]["updated"] = catalog_dict["metadata"]["updated"].isoformat()
 
         json_file.write_text(json.dumps(catalog_dict, indent=2, default=str))
 
@@ -413,9 +370,7 @@ class TestSchemaValidation:
         # Only run if schema exists (will be created later)
         if schema_path.exists():
             result = subprocess.run(
-                ["check-jsonschema", "--schemafile", str(schema_path), str(json_file)],
-                capture_output=True,
-                text=True
+                ["check-jsonschema", "--schemafile", str(schema_path), str(json_file)], capture_output=True, text=True
             )
             assert result.returncode == 0, f"Schema validation failed: {result.stderr}"
 
@@ -432,7 +387,7 @@ class TestSchemaValidation:
                 "name": "Test"
                 # Missing required fields
             },
-            "errors": {}
+            "errors": {},
         }
 
         json_file = tmp_path / "invalid.json"
@@ -443,9 +398,7 @@ class TestSchemaValidation:
         # Only run if schema exists (will be created later)
         if schema_path.exists():
             result = subprocess.run(
-                ["check-jsonschema", "--schemafile", str(schema_path), str(json_file)],
-                capture_output=True,
-                text=True
+                ["check-jsonschema", "--schemafile", str(schema_path), str(json_file)], capture_output=True, text=True
             )
             assert result.returncode != 0, "Invalid catalog should fail validation"
 
@@ -461,13 +414,7 @@ class TestCatalogHelpers:
         catalog = ErrorCatalog(
             version="1.0.0",
             schema_version="1.0.0",
-            metadata=CatalogMetadata(
-                name="Test",
-                description="Test",
-                author="Author",
-                created=now,
-                updated=now
-            ),
+            metadata=CatalogMetadata(name="Test", description="Test", author="Author", created=now, updated=now),
             errors={
                 "error1": ErrorDefinition(
                     id="error1",
@@ -475,7 +422,7 @@ class TestCatalogHelpers:
                     files=["/var/log/*.log"],
                     meaning="An error",
                     context_lines=3,
-                    suggestion="Fix it"
+                    suggestion="Fix it",
                 ),
                 "error2": ErrorDefinition(
                     id="error2",
@@ -483,9 +430,9 @@ class TestCatalogHelpers:
                     files=["/var/log/*.log"],
                     meaning="A warning",
                     context_lines=2,
-                    suggestion="Check it"
-                )
-            }
+                    suggestion="Check it",
+                ),
+            },
         )
 
         # Access errors by ID

@@ -119,9 +119,7 @@ def test_evaluate_and_one_false(evaluator, sample_error_match, sample_catalog):
 
 def test_evaluate_and_single_true(evaluator, sample_error_match, sample_catalog):
     """AND condition with single true condition should return True."""
-    condition = ConditionSpec(
-        type=ConditionType.AND, conditions=[ConditionSpec(type=ConditionType.ALWAYS)]
-    )
+    condition = ConditionSpec(type=ConditionType.AND, conditions=[ConditionSpec(type=ConditionType.ALWAYS)])
     result = evaluator.evaluate(condition, sample_error_match, sample_catalog)
     assert result is True
 
@@ -132,13 +130,9 @@ def test_evaluate_or_one_true(evaluator, sample_error_match, sample_catalog):
     condition = ConditionSpec(
         type=ConditionType.OR,
         conditions=[
-            ConditionSpec(
-                type=ConditionType.FIELD_EQUALS, field="line_number", value=999
-            ),
+            ConditionSpec(type=ConditionType.FIELD_EQUALS, field="line_number", value=999),
             ConditionSpec(type=ConditionType.ALWAYS),  # This is true
-            ConditionSpec(
-                type=ConditionType.FIELD_EQUALS, field="line_number", value=888
-            ),
+            ConditionSpec(type=ConditionType.FIELD_EQUALS, field="line_number", value=888),
         ],
     )
     result = evaluator.evaluate(condition, sample_error_match, sample_catalog)
@@ -150,15 +144,9 @@ def test_evaluate_or_all_false(evaluator, sample_error_match, sample_catalog):
     condition = ConditionSpec(
         type=ConditionType.OR,
         conditions=[
-            ConditionSpec(
-                type=ConditionType.FIELD_EQUALS, field="line_number", value=999
-            ),
-            ConditionSpec(
-                type=ConditionType.FIELD_EQUALS, field="line_number", value=888
-            ),
-            ConditionSpec(
-                type=ConditionType.FIELD_EQUALS, field="line_number", value=777
-            ),
+            ConditionSpec(type=ConditionType.FIELD_EQUALS, field="line_number", value=999),
+            ConditionSpec(type=ConditionType.FIELD_EQUALS, field="line_number", value=888),
+            ConditionSpec(type=ConditionType.FIELD_EQUALS, field="line_number", value=777),
         ],
     )
     result = evaluator.evaluate(condition, sample_error_match, sample_catalog)
@@ -169,11 +157,7 @@ def test_evaluate_or_single_false(evaluator, sample_error_match, sample_catalog)
     """OR condition with single false condition should return False."""
     condition = ConditionSpec(
         type=ConditionType.OR,
-        conditions=[
-            ConditionSpec(
-                type=ConditionType.FIELD_EQUALS, field="line_number", value=999
-            )
-        ],
+        conditions=[ConditionSpec(type=ConditionType.FIELD_EQUALS, field="line_number", value=999)],
     )
     result = evaluator.evaluate(condition, sample_error_match, sample_catalog)
     assert result is False
@@ -182,18 +166,14 @@ def test_evaluate_or_single_false(evaluator, sample_error_match, sample_catalog)
 # Test FIELD_EQUALS
 def test_evaluate_field_equals_true(evaluator, sample_error_match, sample_catalog):
     """FIELD_EQUALS should return True when field equals value."""
-    condition = ConditionSpec(
-        type=ConditionType.FIELD_EQUALS, field="line_number", value=42
-    )
+    condition = ConditionSpec(type=ConditionType.FIELD_EQUALS, field="line_number", value=42)
     result = evaluator.evaluate(condition, sample_error_match, sample_catalog)
     assert result is True
 
 
 def test_evaluate_field_equals_false(evaluator, sample_error_match, sample_catalog):
     """FIELD_EQUALS should return False when field does not equal value."""
-    condition = ConditionSpec(
-        type=ConditionType.FIELD_EQUALS, field="line_number", value=999
-    )
+    condition = ConditionSpec(type=ConditionType.FIELD_EQUALS, field="line_number", value=999)
     result = evaluator.evaluate(condition, sample_error_match, sample_catalog)
     assert result is False
 
@@ -212,18 +192,14 @@ def test_evaluate_field_equals_string(evaluator, sample_error_match, sample_cata
 # Test FIELD_CONTAINS
 def test_evaluate_field_contains_true(evaluator, sample_error_match, sample_catalog):
     """FIELD_CONTAINS should return True when value is in field."""
-    condition = ConditionSpec(
-        type=ConditionType.FIELD_CONTAINS, field="matched_text", value="OutOfMemory"
-    )
+    condition = ConditionSpec(type=ConditionType.FIELD_CONTAINS, field="matched_text", value="OutOfMemory")
     result = evaluator.evaluate(condition, sample_error_match, sample_catalog)
     assert result is True
 
 
 def test_evaluate_field_contains_false(evaluator, sample_error_match, sample_catalog):
     """FIELD_CONTAINS should return False when value is not in field."""
-    condition = ConditionSpec(
-        type=ConditionType.FIELD_CONTAINS, field="matched_text", value="NonExistent"
-    )
+    condition = ConditionSpec(type=ConditionType.FIELD_CONTAINS, field="matched_text", value="NonExistent")
     result = evaluator.evaluate(condition, sample_error_match, sample_catalog)
     assert result is False
 
@@ -242,29 +218,21 @@ def test_evaluate_field_contains_list(evaluator, sample_error_match, sample_cata
 # Test FIELD_REGEX
 def test_evaluate_field_regex_match(evaluator, sample_error_match, sample_catalog):
     """FIELD_REGEX should return True when regex matches."""
-    condition = ConditionSpec(
-        type=ConditionType.FIELD_REGEX, field="matched_text", value=r"OutOf.*Error"
-    )
+    condition = ConditionSpec(type=ConditionType.FIELD_REGEX, field="matched_text", value=r"OutOf.*Error")
     result = evaluator.evaluate(condition, sample_error_match, sample_catalog)
     assert result is True
 
 
 def test_evaluate_field_regex_no_match(evaluator, sample_error_match, sample_catalog):
     """FIELD_REGEX should return False when regex does not match."""
-    condition = ConditionSpec(
-        type=ConditionType.FIELD_REGEX, field="matched_text", value=r"^Success"
-    )
+    condition = ConditionSpec(type=ConditionType.FIELD_REGEX, field="matched_text", value=r"^Success")
     result = evaluator.evaluate(condition, sample_error_match, sample_catalog)
     assert result is False
 
 
-def test_evaluate_field_regex_case_sensitive(
-    evaluator, sample_error_match, sample_catalog
-):
+def test_evaluate_field_regex_case_sensitive(evaluator, sample_error_match, sample_catalog):
     """FIELD_REGEX should be case-sensitive by default."""
-    condition = ConditionSpec(
-        type=ConditionType.FIELD_REGEX, field="matched_text", value=r"outofmemory"
-    )
+    condition = ConditionSpec(type=ConditionType.FIELD_REGEX, field="matched_text", value=r"outofmemory")
     result = evaluator.evaluate(condition, sample_error_match, sample_catalog)
     assert result is False
 
@@ -290,9 +258,7 @@ def test_evaluate_custom_callable_false(evaluator, sample_error_match, sample_ca
     assert result is False
 
 
-def test_evaluate_custom_callable_with_logic(
-    evaluator, sample_error_match, sample_catalog
-):
+def test_evaluate_custom_callable_with_logic(evaluator, sample_error_match, sample_catalog):
     """CUSTOM condition should execute callable logic."""
     condition = ConditionSpec(
         type=ConditionType.CUSTOM,
@@ -311,12 +277,8 @@ def test_nested_conditions_and_or(evaluator, sample_error_match, sample_catalog)
             ConditionSpec(
                 type=ConditionType.OR,
                 conditions=[
-                    ConditionSpec(
-                        type=ConditionType.FIELD_EQUALS, field="line_number", value=42
-                    ),
-                    ConditionSpec(
-                        type=ConditionType.FIELD_EQUALS, field="line_number", value=43
-                    ),
+                    ConditionSpec(type=ConditionType.FIELD_EQUALS, field="line_number", value=42),
+                    ConditionSpec(type=ConditionType.FIELD_EQUALS, field="line_number", value=43),
                 ],
             ),
             ConditionSpec(
@@ -376,37 +338,27 @@ def test_nested_conditions_complex(evaluator, sample_error_match, sample_catalog
 # Test field access with dot notation
 def test_field_access_dot_notation(evaluator, sample_error_match, sample_catalog):
     """Field access should support dot notation for nested metadata."""
-    condition = ConditionSpec(
-        type=ConditionType.FIELD_EQUALS, field="metadata.hostname", value="compute-node-01"
-    )
+    condition = ConditionSpec(type=ConditionType.FIELD_EQUALS, field="metadata.hostname", value="compute-node-01")
     result = evaluator.evaluate(condition, sample_error_match, sample_catalog)
     assert result is True
 
 
-def test_field_access_nested_dot_notation(
-    evaluator, sample_error_match, sample_catalog
-):
+def test_field_access_nested_dot_notation(evaluator, sample_error_match, sample_catalog):
     """Field access should support multiple levels of dot notation."""
-    condition = ConditionSpec(
-        type=ConditionType.FIELD_EQUALS, field="metadata.nested.key", value="value"
-    )
+    condition = ConditionSpec(type=ConditionType.FIELD_EQUALS, field="metadata.nested.key", value="value")
     result = evaluator.evaluate(condition, sample_error_match, sample_catalog)
     assert result is True
 
 
 def test_field_access_nested_int(evaluator, sample_error_match, sample_catalog):
     """Field access should work with nested integer values."""
-    condition = ConditionSpec(
-        type=ConditionType.FIELD_EQUALS, field="metadata.nested.count", value=42
-    )
+    condition = ConditionSpec(type=ConditionType.FIELD_EQUALS, field="metadata.nested.count", value=42)
     result = evaluator.evaluate(condition, sample_error_match, sample_catalog)
     assert result is True
 
 
 # Test field access with array indexing
-def test_field_access_array_index_positive(
-    evaluator, sample_error_match, sample_catalog
-):
+def test_field_access_array_index_positive(evaluator, sample_error_match, sample_catalog):
     """Field access should support positive array indexing."""
     condition = ConditionSpec(
         type=ConditionType.FIELD_EQUALS,
@@ -417,9 +369,7 @@ def test_field_access_array_index_positive(
     assert result is True
 
 
-def test_field_access_array_index_negative(
-    evaluator, sample_error_match, sample_catalog
-):
+def test_field_access_array_index_negative(evaluator, sample_error_match, sample_catalog):
     """Field access should support negative array indexing."""
     condition = ConditionSpec(
         type=ConditionType.FIELD_EQUALS,
@@ -430,9 +380,7 @@ def test_field_access_array_index_negative(
     assert result is True
 
 
-def test_field_access_array_index_middle(
-    evaluator, sample_error_match, sample_catalog
-):
+def test_field_access_array_index_middle(evaluator, sample_error_match, sample_catalog):
     """Field access should support middle array indices."""
     condition = ConditionSpec(
         type=ConditionType.FIELD_EQUALS,
@@ -446,16 +394,12 @@ def test_field_access_array_index_middle(
 # Test missing field handling
 def test_missing_field_returns_false(evaluator, sample_error_match, sample_catalog):
     """Missing field should return False gracefully."""
-    condition = ConditionSpec(
-        type=ConditionType.FIELD_EQUALS, field="nonexistent_field", value="anything"
-    )
+    condition = ConditionSpec(type=ConditionType.FIELD_EQUALS, field="nonexistent_field", value="anything")
     result = evaluator.evaluate(condition, sample_error_match, sample_catalog)
     assert result is False
 
 
-def test_missing_nested_field_returns_false(
-    evaluator, sample_error_match, sample_catalog
-):
+def test_missing_nested_field_returns_false(evaluator, sample_error_match, sample_catalog):
     """Missing nested field should return False gracefully."""
     condition = ConditionSpec(
         type=ConditionType.FIELD_EQUALS,
@@ -466,13 +410,9 @@ def test_missing_nested_field_returns_false(
     assert result is False
 
 
-def test_array_index_out_of_bounds_returns_false(
-    evaluator, sample_error_match, sample_catalog
-):
+def test_array_index_out_of_bounds_returns_false(evaluator, sample_error_match, sample_catalog):
     """Array index out of bounds should return False gracefully."""
-    condition = ConditionSpec(
-        type=ConditionType.FIELD_EQUALS, field="context_before[999]", value="anything"
-    )
+    condition = ConditionSpec(type=ConditionType.FIELD_EQUALS, field="context_before[999]", value="anything")
     result = evaluator.evaluate(condition, sample_error_match, sample_catalog)
     assert result is False
 

@@ -308,9 +308,7 @@ def is_repeated_error(error_match: ErrorMatch, catalog: ErrorCatalog) -> bool:
 
     # Count occurrences in context
     all_context = error_match.context_before + error_match.context_after
-    occurrences = sum(
-        1 for line in all_context if key_phrase in line.lower()
-    )
+    occurrences = sum(1 for line in all_context if key_phrase in line.lower())
 
     # If found 2+ times in context (not counting the match itself), it's repeated
     return occurrences >= 2

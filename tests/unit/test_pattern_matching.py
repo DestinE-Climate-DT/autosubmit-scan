@@ -94,10 +94,7 @@ class TestRegexPatternMatcher:
 
     def test_regex_with_groups(self):
         """Test regex with capture groups."""
-        pattern = PatternMatcher(
-            type=PatternType.REGEX,
-            pattern=r"Job (\d+) on node ([\w-]+)"
-        )
+        pattern = PatternMatcher(type=PatternType.REGEX, pattern=r"Job (\d+) on node ([\w-]+)")
         matcher = RegexPatternMatcher(pattern)
 
         matches = matcher.find_all("Job 12345 on node compute-01")
@@ -107,11 +104,7 @@ class TestRegexPatternMatcher:
 
     def test_regex_flag_ignorecase(self):
         """Test IGNORECASE flag works."""
-        pattern = PatternMatcher(
-            type=PatternType.REGEX,
-            pattern=r"error",
-            flags=["IGNORECASE"]
-        )
+        pattern = PatternMatcher(type=PatternType.REGEX, pattern=r"error", flags=["IGNORECASE"])
         matcher = RegexPatternMatcher(pattern)
 
         assert matcher.match("ERROR") is True
@@ -121,11 +114,7 @@ class TestRegexPatternMatcher:
 
     def test_regex_flag_multiline(self):
         """Test MULTILINE flag works."""
-        pattern = PatternMatcher(
-            type=PatternType.REGEX,
-            pattern=r"^ERROR",
-            flags=["MULTILINE"]
-        )
+        pattern = PatternMatcher(type=PatternType.REGEX, pattern=r"^ERROR", flags=["MULTILINE"])
         matcher = RegexPatternMatcher(pattern)
 
         text = "First line\nERROR: Second line\nThird line"
@@ -136,11 +125,7 @@ class TestRegexPatternMatcher:
 
     def test_regex_flag_dotall(self):
         """Test DOTALL flag allows . to match newlines."""
-        pattern = PatternMatcher(
-            type=PatternType.REGEX,
-            pattern=r"ERROR.*failed",
-            flags=["DOTALL"]
-        )
+        pattern = PatternMatcher(type=PatternType.REGEX, pattern=r"ERROR.*failed", flags=["DOTALL"])
         matcher = RegexPatternMatcher(pattern)
 
         text = "ERROR: Something\nwent wrong and\nfailed"
@@ -148,11 +133,7 @@ class TestRegexPatternMatcher:
 
     def test_regex_multiple_flags(self):
         """Test combining multiple flags."""
-        pattern = PatternMatcher(
-            type=PatternType.REGEX,
-            pattern=r"^error.*failed",
-            flags=["IGNORECASE", "MULTILINE", "DOTALL"]
-        )
+        pattern = PatternMatcher(type=PatternType.REGEX, pattern=r"^error.*failed", flags=["IGNORECASE", "MULTILINE", "DOTALL"])
         matcher = RegexPatternMatcher(pattern)
 
         text = "First line\nERROR: Something\nfailed"
@@ -160,10 +141,7 @@ class TestRegexPatternMatcher:
 
     def test_regex_find_all_multiple(self):
         """Test finding all regex matches."""
-        pattern = PatternMatcher(
-            type=PatternType.REGEX,
-            pattern=r"Job \d+"
-        )
+        pattern = PatternMatcher(type=PatternType.REGEX, pattern=r"Job \d+")
         matcher = RegexPatternMatcher(pattern)
 
         matches = matcher.find_all("Job 123 started, Job 456 finished")
@@ -173,10 +151,7 @@ class TestRegexPatternMatcher:
 
     def test_regex_invalid_pattern(self):
         """Test that invalid regex raises error."""
-        pattern = PatternMatcher(
-            type=PatternType.REGEX,
-            pattern=r"[invalid("
-        )
+        pattern = PatternMatcher(type=PatternType.REGEX, pattern=r"[invalid(")
 
         with pytest.raises(re.error):
             RegexPatternMatcher(pattern)
@@ -187,30 +162,21 @@ class TestCallablePatternMatcher:
 
     def test_callable_returns_bool_true(self):
         """Test callable that returns True."""
-        pattern = PatternMatcher(
-            type=PatternType.CALLABLE,
-            pattern="tests.unit.test_pattern_matching:always_match"
-        )
+        pattern = PatternMatcher(type=PatternType.CALLABLE, pattern="tests.unit.test_pattern_matching:always_match")
         matcher = CallablePatternMatcher(pattern)
 
         assert matcher.match("Any text") is True
 
     def test_callable_returns_bool_false(self):
         """Test callable that returns False."""
-        pattern = PatternMatcher(
-            type=PatternType.CALLABLE,
-            pattern="tests.unit.test_pattern_matching:never_match"
-        )
+        pattern = PatternMatcher(type=PatternType.CALLABLE, pattern="tests.unit.test_pattern_matching:never_match")
         matcher = CallablePatternMatcher(pattern)
 
         assert matcher.match("Any text") is False
 
     def test_callable_with_logic(self):
         """Test callable with actual matching logic."""
-        pattern = PatternMatcher(
-            type=PatternType.CALLABLE,
-            pattern="tests.unit.test_pattern_matching:has_oom_pattern"
-        )
+        pattern = PatternMatcher(type=PatternType.CALLABLE, pattern="tests.unit.test_pattern_matching:has_oom_pattern")
         matcher = CallablePatternMatcher(pattern)
 
         assert matcher.match("slurmstepd: error: Detected 1 oom-kill event") is True
@@ -218,30 +184,21 @@ class TestCallablePatternMatcher:
 
     def test_callable_invalid_module(self):
         """Test error handling for non-existent module."""
-        pattern = PatternMatcher(
-            type=PatternType.CALLABLE,
-            pattern="nonexistent.module:function"
-        )
+        pattern = PatternMatcher(type=PatternType.CALLABLE, pattern="nonexistent.module:function")
 
         with pytest.raises(ImportError):
             CallablePatternMatcher(pattern)
 
     def test_callable_invalid_function(self):
         """Test error handling for non-existent function."""
-        pattern = PatternMatcher(
-            type=PatternType.CALLABLE,
-            pattern="tests.unit.test_pattern_matching:nonexistent_function"
-        )
+        pattern = PatternMatcher(type=PatternType.CALLABLE, pattern="tests.unit.test_pattern_matching:nonexistent_function")
 
         with pytest.raises(AttributeError):
             CallablePatternMatcher(pattern)
 
     def test_callable_find_all_not_supported(self):
         """Test that find_all raises NotImplementedError for bool-returning callables."""
-        pattern = PatternMatcher(
-            type=PatternType.CALLABLE,
-            pattern="tests.unit.test_pattern_matching:always_match"
-        )
+        pattern = PatternMatcher(type=PatternType.CALLABLE, pattern="tests.unit.test_pattern_matching:always_match")
         matcher = CallablePatternMatcher(pattern)
 
         # Bool-returning callables cannot provide match positions
@@ -270,10 +227,7 @@ class TestPatternMatcherFactory:
 
     def test_create_callable_matcher(self):
         """Test factory creates CallablePatternMatcher."""
-        pattern = PatternMatcher(
-            type=PatternType.CALLABLE,
-            pattern="tests.unit.test_pattern_matching:always_match"
-        )
+        pattern = PatternMatcher(type=PatternType.CALLABLE, pattern="tests.unit.test_pattern_matching:always_match")
         matcher = PatternMatcherFactory.create_matcher(pattern)
 
         assert isinstance(matcher, CallablePatternMatcher)
@@ -284,10 +238,7 @@ class TestPatternMatcherFactory:
         patterns = [
             PatternMatcher(type=PatternType.LITERAL, pattern="test"),
             PatternMatcher(type=PatternType.REGEX, pattern=r"test"),
-            PatternMatcher(
-                type=PatternType.CALLABLE,
-                pattern="tests.unit.test_pattern_matching:always_match"
-            ),
+            PatternMatcher(type=PatternType.CALLABLE, pattern="tests.unit.test_pattern_matching:always_match"),
         ]
 
         for pattern in patterns:

@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """Debug version of completer test."""
 
-from prompt_toolkit.completion import Completion
 from prompt_toolkit.document import Document
+
 from src.cli.completion import GlobPatternCompleter
 
 

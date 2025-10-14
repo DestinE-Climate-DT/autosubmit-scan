@@ -5,7 +5,6 @@ This module provides the railway pattern execution logic:
 - RailwayPlanner: Builds DAG of potential error chains for Snakemake
 """
 
-
 from src.domain.models import ErrorCatalog, ErrorDefinition, ErrorMatch
 from src.orchestration.conditions import ConditionEvaluator
 

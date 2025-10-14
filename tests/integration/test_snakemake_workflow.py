@@ -108,7 +108,7 @@ class TestFingerprinting:
         file_hash = get_file_hash(str(test_file))
         fp_file = fp_dir / f"{file_hash}.json"
 
-        with open(fp_file, 'w') as f:
+        with open(fp_file, "w") as f:
             json.dump(fingerprint, f, indent=2)
 
         # Verify file was created
@@ -131,12 +131,7 @@ class TestPatternMatching:
         """Should find pattern matches and save line numbers."""
         # Create test file
         test_file = tmp_path / "test.log"
-        test_file.write_text(
-            "Line 1: normal\n"
-            "Line 2: ERROR\n"
-            "Line 3: normal\n"
-            "Line 4: ERROR\n"
-        )
+        test_file.write_text("Line 1: normal\nLine 2: ERROR\nLine 3: normal\nLine 4: ERROR\n")
 
         # Create error definition
         error_def = ErrorDefinition(
@@ -152,18 +147,14 @@ class TestPatternMatching:
         line_numbers = scan_file_for_pattern(str(test_file), error_def.pattern)
 
         # Save match data (what the rule would do)
-        match_data = {
-            "file_uri": str(test_file),
-            "error_id": "test_error",
-            "match_line_numbers": line_numbers
-        }
+        match_data = {"file_uri": str(test_file), "error_id": "test_error", "match_line_numbers": line_numbers}
 
         matches_dir = tmp_path / "matches"
         matches_dir.mkdir()
         file_hash = get_file_hash(str(test_file))
         match_file = matches_dir / f"{file_hash}.json"
 
-        with open(match_file, 'w') as f:
+        with open(match_file, "w") as f:
             json.dump(match_data, f, indent=2)
 
         # Verify match file was created
@@ -208,30 +199,18 @@ class TestMatchFiltering:
         matches_dir.mkdir()
 
         # File 1: has matches
-        match_data_1 = {
-            "file_uri": "/path/file1.log",
-            "error_id": "test_error",
-            "match_line_numbers": [2, 4]
-        }
-        with open(matches_dir / "hash1.json", 'w') as f:
+        match_data_1 = {"file_uri": "/path/file1.log", "error_id": "test_error", "match_line_numbers": [2, 4]}
+        with open(matches_dir / "hash1.json", "w") as f:
             json.dump(match_data_1, f)
 
         # File 2: no matches
-        match_data_2 = {
-            "file_uri": "/path/file2.log",
-            "error_id": "test_error",
-            "match_line_numbers": []
-        }
-        with open(matches_dir / "hash2.json", 'w') as f:
+        match_data_2 = {"file_uri": "/path/file2.log", "error_id": "test_error", "match_line_numbers": []}
+        with open(matches_dir / "hash2.json", "w") as f:
             json.dump(match_data_2, f)
 
         # File 3: has matches
-        match_data_3 = {
-            "file_uri": "/path/file3.log",
-            "error_id": "test_error",
-            "match_line_numbers": [1]
-        }
-        with open(matches_dir / "hash3.json", 'w') as f:
+        match_data_3 = {"file_uri": "/path/file3.log", "error_id": "test_error", "match_line_numbers": [1]}
+        with open(matches_dir / "hash3.json", "w") as f:
             json.dump(match_data_3, f)
 
         # Filter matches (what the checkpoint would do)
@@ -263,11 +242,7 @@ class TestContextExtraction:
         """Should extract context and create result JSON."""
         # Create test file
         test_file = tmp_path / "test.log"
-        test_file.write_text(
-            "Line 1: context\n"
-            "Line 2: ERROR\n"
-            "Line 3: context\n"
-        )
+        test_file.write_text("Line 1: context\nLine 2: ERROR\nLine 3: context\n")
 
         # Create error definition
         error_def = ErrorDefinition(
@@ -281,20 +256,16 @@ class TestContextExtraction:
 
         # Extract matches
         line_numbers = [2]
-        matches = extract_matches_with_context(
-            str(test_file),
-            line_numbers,
-            error_def
-        )
+        matches = extract_matches_with_context(str(test_file), line_numbers, error_def)
 
         # Save results (what the rule would do)
-        matches_json = [match.model_dump(mode='json') for match in matches]
+        matches_json = [match.model_dump(mode="json") for match in matches]
 
         results_dir = tmp_path / "results"
         results_dir.mkdir()
         result_file = results_dir / "result.json"
 
-        with open(result_file, 'w') as f:
+        with open(result_file, "w") as f:
             json.dump(matches_json, f, indent=2)
 
         # Verify result file
@@ -323,14 +294,14 @@ class TestResultAggregation:
             {"error_id": "test_error", "line_number": 2},
             {"error_id": "test_error", "line_number": 4},
         ]
-        with open(results_dir / "result1.json", 'w') as f:
+        with open(results_dir / "result1.json", "w") as f:
             json.dump(matches_1, f)
 
         # Result 2
         matches_2 = [
             {"error_id": "test_error", "line_number": 1},
         ]
-        with open(results_dir / "result2.json", 'w') as f:
+        with open(results_dir / "result2.json", "w") as f:
             json.dump(matches_2, f)
 
         # Aggregate (what the rule would do)
@@ -343,7 +314,7 @@ class TestResultAggregation:
 
         # Write aggregated result
         aggregated_file = tmp_path / "aggregated.json"
-        with open(aggregated_file, 'w') as f:
+        with open(aggregated_file, "w") as f:
             json.dump(all_matches, f, indent=2)
 
         # Verify aggregation
@@ -362,22 +333,11 @@ class TestEndToEndWorkflow:
         log_dir = tmp_path / "logs"
         log_dir.mkdir()
 
-        (log_dir / "job1.log").write_text(
-            "Starting job\n"
-            "ERROR: Out of memory\n"
-            "Job failed\n"
-        )
+        (log_dir / "job1.log").write_text("Starting job\nERROR: Out of memory\nJob failed\n")
 
-        (log_dir / "job2.log").write_text(
-            "Starting job\n"
-            "Job completed successfully\n"
-        )
+        (log_dir / "job2.log").write_text("Starting job\nJob completed successfully\n")
 
-        (log_dir / "job3.log").write_text(
-            "Starting job\n"
-            "ERROR: Disk full\n"
-            "Job failed\n"
-        )
+        (log_dir / "job3.log").write_text("Starting job\nERROR: Disk full\nJob failed\n")
 
         # Create simple catalog
         catalog = ErrorCatalog(
@@ -421,11 +381,7 @@ class TestEndToEndWorkflow:
         # Step 3: Context Extraction
         all_matches = []
         for file_uri, line_numbers in matches_by_file.items():
-            matches = extract_matches_with_context(
-                file_uri,
-                line_numbers,
-                error_def
-            )
+            matches = extract_matches_with_context(file_uri, line_numbers, error_def)
             all_matches.extend(matches)
 
         # Should have 2 total matches

@@ -55,7 +55,7 @@ class TestGetFileHash:
     def test_hash_is_consistent_with_sha256(self):
         """Hash should match expected SHA256 of URI."""
         uri = "s3://bucket/path/file.log"
-        expected_hash = hashlib.sha256(uri.encode('utf-8')).hexdigest()
+        expected_hash = hashlib.sha256(uri.encode("utf-8")).hexdigest()
         assert get_file_hash(uri) == expected_hash
 
     def test_hash_handles_special_characters(self):
@@ -181,7 +181,7 @@ class TestGetFingerprint:
 
         fingerprint = get_fingerprint(str(test_file))
 
-        assert fingerprint["size"] == len(content.encode('utf-8'))
+        assert fingerprint["size"] == len(content.encode("utf-8"))
 
     def test_fingerprint_mtime_is_valid_timestamp(self, tmp_path):
         """Fingerprint mtime should be a valid ISO timestamp."""
@@ -191,7 +191,7 @@ class TestGetFingerprint:
         fingerprint = get_fingerprint(str(test_file))
 
         # Should be able to parse as datetime
-        mtime = datetime.fromisoformat(fingerprint["mtime"].replace('Z', '+00:00'))
+        mtime = datetime.fromisoformat(fingerprint["mtime"].replace("Z", "+00:00"))
         assert isinstance(mtime, datetime)
 
     def test_fingerprint_includes_checksum_for_local_files(self, tmp_path):
@@ -260,11 +260,7 @@ class TestReadManifest:
     def test_read_manifest_strips_whitespace(self, tmp_path):
         """Should strip whitespace from URIs."""
         manifest_file = tmp_path / "manifest.txt"
-        manifest_file.write_text(
-            "  s3://bucket/file1.log  \n"
-            "s3://bucket/file2.log\n"
-            "  ssh://host/path/file3.log\n"
-        )
+        manifest_file.write_text("  s3://bucket/file1.log  \ns3://bucket/file2.log\n  ssh://host/path/file3.log\n")
 
         result = read_manifest(str(manifest_file))
 
@@ -277,13 +273,7 @@ class TestReadManifest:
     def test_read_manifest_skips_empty_lines(self, tmp_path):
         """Should skip empty lines in manifest."""
         manifest_file = tmp_path / "manifest.txt"
-        manifest_file.write_text(
-            "s3://bucket/file1.log\n"
-            "\n"
-            "s3://bucket/file2.log\n"
-            "  \n"
-            "ssh://host/path/file3.log\n"
-        )
+        manifest_file.write_text("s3://bucket/file1.log\n\ns3://bucket/file2.log\n  \nssh://host/path/file3.log\n")
 
         result = read_manifest(str(manifest_file))
 
@@ -296,12 +286,7 @@ class TestReadManifest:
     def test_read_manifest_handles_comments(self, tmp_path):
         """Should skip lines starting with # (comments)."""
         manifest_file = tmp_path / "manifest.txt"
-        manifest_file.write_text(
-            "# This is a comment\n"
-            "s3://bucket/file1.log\n"
-            "# Another comment\n"
-            "s3://bucket/file2.log\n"
-        )
+        manifest_file.write_text("# This is a comment\ns3://bucket/file1.log\n# Another comment\ns3://bucket/file2.log\n")
 
         result = read_manifest(str(manifest_file))
 

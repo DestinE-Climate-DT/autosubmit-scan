@@ -43,8 +43,9 @@ def detect_memory_leak(text: str) -> bool:
     if "memory usage:" in text_lower or "mem:" in text_lower:
         # Simple heuristic: look for percentages >90 or nearly full ratios
         import re
+
         # Pattern: XX.X GB / YY.Y GB where XX is close to YY
-        match = re.search(r'(\d+\.?\d*)\s*gb\s*/\s*(\d+\.?\d*)\s*gb', text_lower)
+        match = re.search(r"(\d+\.?\d*)\s*gb\s*/\s*(\d+\.?\d*)\s*gb", text_lower)
         if match:
             used = float(match.group(1))
             total = float(match.group(2))
@@ -52,7 +53,7 @@ def detect_memory_leak(text: str) -> bool:
                 return True
 
         # Pattern: XX%
-        match = re.search(r'(\d+)%', text)
+        match = re.search(r"(\d+)%", text)
         if match:
             percent = int(match.group(1))
             if percent > 90:
@@ -303,6 +304,7 @@ def detect_python_traceback(text: str) -> bool:
 
     # Look for typical traceback file location pattern
     import re
+
     if re.search(r'File ".*\.py", line \d+', text):
         return True
 

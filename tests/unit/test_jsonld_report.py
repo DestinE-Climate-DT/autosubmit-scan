@@ -19,11 +19,7 @@ def sample_catalog():
         version="1.0.0",
         schema_version="1.0.0",
         metadata=CatalogMetadata(
-            name="Test Catalog",
-            description="Test error catalog",
-            author="Test Author",
-            created=now,
-            updated=now
+            name="Test Catalog", description="Test error catalog", author="Test Author", created=now, updated=now
         ),
         errors={
             "slurm_oom": ErrorDefinition(
@@ -32,7 +28,7 @@ def sample_catalog():
                 files=["s3://bucket/logs/*.log"],
                 meaning="Job exceeded memory limits",
                 context_lines=3,
-                suggestion="Increase --mem parameter"
+                suggestion="Increase --mem parameter",
             ),
             "slurm_timeout": ErrorDefinition(
                 id="slurm_timeout",
@@ -40,9 +36,9 @@ def sample_catalog():
                 files=["s3://bucket/logs/*.log"],
                 meaning="Job exceeded time limit",
                 context_lines=2,
-                suggestion="Increase --time parameter"
-            )
-        }
+                suggestion="Increase --time parameter",
+            ),
+        },
     )
 
 
@@ -59,7 +55,7 @@ def sample_matches():
             context_before=["Starting job", "Allocating resources", "Running application"],
             context_after=["Job terminated", "Cleanup initiated"],
             timestamp=now,
-            metadata={"host": "node001", "job_id": "123"}
+            metadata={"host": "node001", "job_id": "123"},
         ),
         ErrorMatch(
             error_id="slurm_oom",
@@ -69,7 +65,7 @@ def sample_matches():
             context_before=["Starting job", "Loading data"],
             context_after=["Error handler triggered"],
             timestamp=now,
-            metadata={"host": "node002", "job_id": "124"}
+            metadata={"host": "node002", "job_id": "124"},
         ),
         ErrorMatch(
             error_id="slurm_timeout",
@@ -79,8 +75,8 @@ def sample_matches():
             context_before=["Processing data"],
             context_after=["Job cancelled"],
             timestamp=now,
-            metadata={"host": "node003", "job_id": "125"}
-        )
+            metadata={"host": "node003", "job_id": "125"},
+        ),
     ]
 
 
@@ -92,10 +88,7 @@ class TestReportStructure:
         from src.reporting.jsonld import ReportGenerator
 
         generator = ReportGenerator()
-        metadata = {
-            "author": {"name": "John Doe", "email": "john@example.com"},
-            "scan_date": datetime.now().isoformat()
-        }
+        metadata = {"author": {"name": "John Doe", "email": "john@example.com"}, "scan_date": datetime.now().isoformat()}
 
         report = generator.generate_report(sample_matches, sample_catalog, metadata)
 
@@ -303,12 +296,7 @@ class TestReportMetadata:
         from src.reporting.jsonld import ReportGenerator
 
         generator = ReportGenerator()
-        metadata = {
-            "author": {
-                "name": "Jane Smith",
-                "email": "jane@example.com"
-            }
-        }
+        metadata = {"author": {"name": "Jane Smith", "email": "jane@example.com"}}
         report = generator.generate_report(sample_matches, sample_catalog, metadata)
 
         assert "author" in report
@@ -372,7 +360,7 @@ class TestEdgeCases:
                 context_before=[],
                 context_after=[],
                 timestamp=now,
-                metadata={}  # No host metadata
+                metadata={},  # No host metadata
             )
         ]
 
@@ -396,7 +384,7 @@ class TestEdgeCases:
                 context_before=[],
                 context_after=[],
                 timestamp=now,
-                metadata={}
+                metadata={},
             )
         ]
 
@@ -463,10 +451,7 @@ class TestReportGeneration:
         from src.reporting.jsonld import ReportGenerator
 
         generator = ReportGenerator()
-        metadata = {
-            "author": {"name": "John Doe", "email": "john@example.com"},
-            "scan_description": "Weekly error scan"
-        }
+        metadata = {"author": {"name": "John Doe", "email": "john@example.com"}, "scan_description": "Weekly error scan"}
 
         report = generator.generate_report(sample_matches, sample_catalog, metadata)
 

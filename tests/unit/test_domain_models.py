@@ -45,10 +45,7 @@ class TestPatternMatcher:
         """Test creation of literal pattern matcher."""
         from src.domain.models import PatternMatcher, PatternType
 
-        matcher = PatternMatcher(
-            type=PatternType.LITERAL,
-            pattern="OOM killed"
-        )
+        matcher = PatternMatcher(type=PatternType.LITERAL, pattern="OOM killed")
         assert matcher.type == PatternType.LITERAL
         assert matcher.pattern == "OOM killed"
         assert matcher.flags is None
@@ -57,11 +54,7 @@ class TestPatternMatcher:
         """Test creation of regex pattern matcher with flags."""
         from src.domain.models import PatternMatcher, PatternType
 
-        matcher = PatternMatcher(
-            type=PatternType.REGEX,
-            pattern=r"ERROR:\s+\w+",
-            flags=["IGNORECASE", "MULTILINE"]
-        )
+        matcher = PatternMatcher(type=PatternType.REGEX, pattern=r"ERROR:\s+\w+", flags=["IGNORECASE", "MULTILINE"])
         assert matcher.type == PatternType.REGEX
         assert matcher.pattern == r"ERROR:\s+\w+"
         assert matcher.flags == ["IGNORECASE", "MULTILINE"]
@@ -70,10 +63,7 @@ class TestPatternMatcher:
         """Test creation of callable pattern matcher."""
         from src.domain.models import PatternMatcher, PatternType
 
-        matcher = PatternMatcher(
-            type=PatternType.CALLABLE,
-            pattern="mymodule:check_error"
-        )
+        matcher = PatternMatcher(type=PatternType.CALLABLE, pattern="mymodule:check_error")
         assert matcher.type == PatternType.CALLABLE
         assert matcher.pattern == "mymodule:check_error"
 
@@ -109,12 +99,7 @@ class TestConditionSpec:
         """Test FIELD_EQUALS condition."""
         from src.domain.models import ConditionSpec, ConditionType
 
-        condition = ConditionSpec(
-            type=ConditionType.FIELD_EQUALS,
-            field="exit_code",
-            operator="==",
-            value=137
-        )
+        condition = ConditionSpec(type=ConditionType.FIELD_EQUALS, field="exit_code", operator="==", value=137)
         assert condition.type == ConditionType.FIELD_EQUALS
         assert condition.field == "exit_code"
         assert condition.operator == "=="
@@ -124,12 +109,7 @@ class TestConditionSpec:
         """Test FIELD_CONTAINS condition."""
         from src.domain.models import ConditionSpec, ConditionType
 
-        condition = ConditionSpec(
-            type=ConditionType.FIELD_CONTAINS,
-            field="matched_text",
-            operator="contains",
-            value="timeout"
-        )
+        condition = ConditionSpec(type=ConditionType.FIELD_CONTAINS, field="matched_text", operator="contains", value="timeout")
         assert condition.type == ConditionType.FIELD_CONTAINS
         assert condition.field == "matched_text"
         assert condition.value == "timeout"
@@ -138,12 +118,7 @@ class TestConditionSpec:
         """Test FIELD_REGEX condition."""
         from src.domain.models import ConditionSpec, ConditionType
 
-        condition = ConditionSpec(
-            type=ConditionType.FIELD_REGEX,
-            field="matched_text",
-            operator="regex",
-            value=r"\d{3,4}"
-        )
+        condition = ConditionSpec(type=ConditionType.FIELD_REGEX, field="matched_text", operator="regex", value=r"\d{3,4}")
         assert condition.type == ConditionType.FIELD_REGEX
         assert condition.field == "matched_text"
         assert condition.value == r"\d{3,4}"
@@ -155,19 +130,9 @@ class TestConditionSpec:
         condition = ConditionSpec(
             type=ConditionType.AND,
             conditions=[
-                ConditionSpec(
-                    type=ConditionType.FIELD_EQUALS,
-                    field="exit_code",
-                    operator="==",
-                    value=1
-                ),
-                ConditionSpec(
-                    type=ConditionType.FIELD_CONTAINS,
-                    field="matched_text",
-                    operator="contains",
-                    value="error"
-                )
-            ]
+                ConditionSpec(type=ConditionType.FIELD_EQUALS, field="exit_code", operator="==", value=1),
+                ConditionSpec(type=ConditionType.FIELD_CONTAINS, field="matched_text", operator="contains", value="error"),
+            ],
         )
         assert condition.type == ConditionType.AND
         assert len(condition.conditions) == 2
@@ -180,13 +145,8 @@ class TestConditionSpec:
             type=ConditionType.OR,
             conditions=[
                 ConditionSpec(type=ConditionType.ALWAYS),
-                ConditionSpec(
-                    type=ConditionType.FIELD_EQUALS,
-                    field="retry_count",
-                    operator=">",
-                    value=3
-                )
-            ]
+                ConditionSpec(type=ConditionType.FIELD_EQUALS, field="retry_count", operator=">", value=3),
+            ],
         )
         assert condition.type == ConditionType.OR
         assert len(condition.conditions) == 2
@@ -195,10 +155,7 @@ class TestConditionSpec:
         """Test CUSTOM condition with callable."""
         from src.domain.models import ConditionSpec, ConditionType
 
-        condition = ConditionSpec(
-            type=ConditionType.CUSTOM,
-            callable="mymodule:should_trigger"
-        )
+        condition = ConditionSpec(type=ConditionType.CUSTOM, callable="mymodule:should_trigger")
         assert condition.type == ConditionType.CUSTOM
         assert condition.callable == "mymodule:should_trigger"
 
@@ -213,27 +170,12 @@ class TestConditionSpec:
                 ConditionSpec(
                     type=ConditionType.AND,
                     conditions=[
-                        ConditionSpec(
-                            type=ConditionType.FIELD_EQUALS,
-                            field="field1",
-                            operator="==",
-                            value="value1"
-                        ),
-                        ConditionSpec(
-                            type=ConditionType.FIELD_EQUALS,
-                            field="field2",
-                            operator="==",
-                            value="value2"
-                        )
-                    ]
+                        ConditionSpec(type=ConditionType.FIELD_EQUALS, field="field1", operator="==", value="value1"),
+                        ConditionSpec(type=ConditionType.FIELD_EQUALS, field="field2", operator="==", value="value2"),
+                    ],
                 ),
-                ConditionSpec(
-                    type=ConditionType.FIELD_EQUALS,
-                    field="field3",
-                    operator="==",
-                    value="value3"
-                )
-            ]
+                ConditionSpec(type=ConditionType.FIELD_EQUALS, field="field3", operator="==", value="value3"),
+            ],
         )
         assert condition.type == ConditionType.OR
         assert len(condition.conditions) == 2
@@ -247,10 +189,7 @@ class TestErrorCondition:
         """Test creation of error condition."""
         from src.domain.models import ConditionSpec, ConditionType, ErrorCondition
 
-        error_condition = ErrorCondition(
-            error_id="next_error",
-            when=ConditionSpec(type=ConditionType.ALWAYS)
-        )
+        error_condition = ErrorCondition(error_id="next_error", when=ConditionSpec(type=ConditionType.ALWAYS))
         assert error_condition.error_id == "next_error"
         assert error_condition.when.type == ConditionType.ALWAYS
 
@@ -264,11 +203,7 @@ class TestCatalogMetadata:
 
         now = datetime.now()
         metadata = CatalogMetadata(
-            name="Test Catalog",
-            description="A test error catalog",
-            author="Test Author",
-            created=now,
-            updated=now
+            name="Test Catalog", description="A test error catalog", author="Test Author", created=now, updated=now
         )
         assert metadata.name == "Test Catalog"
         assert metadata.description == "A test error catalog"
@@ -290,7 +225,7 @@ class TestErrorDefinition:
             files=["/var/log/*.log"],
             meaning="An error occurred",
             context_lines=3,
-            suggestion="Check the logs"
+            suggestion="Check the logs",
         )
         assert error.id == "test_error"
         assert error.pattern.type == PatternType.LITERAL
@@ -312,12 +247,7 @@ class TestErrorDefinition:
             meaning="Out of memory error",
             context_lines=5,
             suggestion="Increase memory allocation",
-            next_errors=[
-                ErrorCondition(
-                    error_id="allocation_error",
-                    when=ConditionSpec(type=ConditionType.ALWAYS)
-                )
-            ]
+            next_errors=[ErrorCondition(error_id="allocation_error", when=ConditionSpec(type=ConditionType.ALWAYS))],
         )
         assert len(error.next_errors) == 1
         assert error.next_errors[0].error_id == "allocation_error"
@@ -333,11 +263,7 @@ class TestErrorDefinition:
             meaning="Critical system error",
             context_lines=10,
             suggestion="Immediate action required",
-            metadata={
-                "severity": "critical",
-                "tags": ["system", "urgent"],
-                "notify": ["ops@example.com"]
-            }
+            metadata={"severity": "critical", "tags": ["system", "urgent"], "notify": ["ops@example.com"]},
         )
         assert error.metadata["severity"] == "critical"
         assert "system" in error.metadata["tags"]
@@ -353,7 +279,7 @@ class TestErrorDefinition:
             files=["/path/to/file.log"],
             meaning="An error",
             context_lines=1,
-            suggestion="Fix it"
+            suggestion="Fix it",
         )
 
         # Invalid: negative context_lines
@@ -364,7 +290,7 @@ class TestErrorDefinition:
                 files=["/path/to/file.log"],
                 meaning="An error",
                 context_lines=-1,
-                suggestion="Fix it"
+                suggestion="Fix it",
             )
 
         # Invalid: empty files list
@@ -375,7 +301,7 @@ class TestErrorDefinition:
                 files=[],
                 meaning="An error",
                 context_lines=1,
-                suggestion="Fix it"
+                suggestion="Fix it",
             )
 
 
@@ -390,13 +316,7 @@ class TestErrorCatalog:
         catalog = ErrorCatalog(
             version="1.0.0",
             schema_version="1.0.0",
-            metadata=CatalogMetadata(
-                name="Test Catalog",
-                description="Test",
-                author="Author",
-                created=now,
-                updated=now
-            ),
+            metadata=CatalogMetadata(name="Test Catalog", description="Test", author="Author", created=now, updated=now),
             errors={
                 "error1": ErrorDefinition(
                     id="error1",
@@ -404,9 +324,9 @@ class TestErrorCatalog:
                     files=["/var/log/*.log"],
                     meaning="Error",
                     context_lines=3,
-                    suggestion="Fix"
+                    suggestion="Fix",
                 )
-            }
+            },
         )
         assert catalog.version == "1.0.0"
         assert catalog.schema_version == "1.0.0"
@@ -417,10 +337,7 @@ class TestErrorCatalog:
         from src.domain.models import CatalogMetadata, ErrorCatalog
 
         now = datetime.now()
-        metadata = CatalogMetadata(
-            name="Test", description="Test", author="Author",
-            created=now, updated=now
-        )
+        metadata = CatalogMetadata(name="Test", description="Test", author="Author", created=now, updated=now)
 
         # Valid semver
         ErrorCatalog(version="1.0.0", schema_version="1.0.0", metadata=metadata, errors={})
@@ -454,7 +371,7 @@ class TestErrorMatch:
             context_before=["line 1", "line 2"],
             context_after=["line 3", "line 4"],
             timestamp=now,
-            metadata={"job_id": "123", "severity": "high"}
+            metadata={"job_id": "123", "severity": "high"},
         )
         assert match.error_id == "oom_error"
         assert match.file_uri == "s3://bucket/logs/job123.log"
@@ -480,7 +397,7 @@ class TestErrorMatch:
             context_before=[],
             context_after=[],
             timestamp=now,
-            metadata={}
+            metadata={},
         )
 
         # Invalid: negative line number
@@ -493,7 +410,7 @@ class TestErrorMatch:
                 context_before=[],
                 context_after=[],
                 timestamp=now,
-                metadata={}
+                metadata={},
             )
 
         # Invalid: line number = 0
@@ -506,7 +423,7 @@ class TestErrorMatch:
                 context_before=[],
                 context_after=[],
                 timestamp=now,
-                metadata={}
+                metadata={},
             )
 
 
@@ -524,7 +441,7 @@ class TestURIValidation:
             files=["s3://bucket/path/file.log"],
             meaning="test",
             context_lines=1,
-            suggestion="test"
+            suggestion="test",
         )
         ErrorDefinition(
             id="test",
@@ -532,7 +449,7 @@ class TestURIValidation:
             files=["s3://bucket/path/*.log"],
             meaning="test",
             context_lines=1,
-            suggestion="test"
+            suggestion="test",
         )
         ErrorDefinition(
             id="test",
@@ -540,7 +457,7 @@ class TestURIValidation:
             files=["s3://bucket/path/**/*.log"],
             meaning="test",
             context_lines=1,
-            suggestion="test"
+            suggestion="test",
         )
 
     def test_ssh_uri_validation(self):
@@ -554,7 +471,7 @@ class TestURIValidation:
             files=["ssh://user@host/path/file.log"],
             meaning="test",
             context_lines=1,
-            suggestion="test"
+            suggestion="test",
         )
         ErrorDefinition(
             id="test",
@@ -562,7 +479,7 @@ class TestURIValidation:
             files=["ssh://user@host:22/path/*.log"],
             meaning="test",
             context_lines=1,
-            suggestion="test"
+            suggestion="test",
         )
         ErrorDefinition(
             id="test",
@@ -570,7 +487,7 @@ class TestURIValidation:
             files=["ssh://user@192.168.1.1:2222/path/**/*.log"],
             meaning="test",
             context_lines=1,
-            suggestion="test"
+            suggestion="test",
         )
 
     def test_sftp_uri_validation(self):
@@ -583,7 +500,7 @@ class TestURIValidation:
             files=["sftp://user:pass@host/path/file.log"],
             meaning="test",
             context_lines=1,
-            suggestion="test"
+            suggestion="test",
         )
 
     def test_ftp_uri_validation(self):
@@ -596,7 +513,7 @@ class TestURIValidation:
             files=["ftp://user:pass@host/path/file.log"],
             meaning="test",
             context_lines=1,
-            suggestion="test"
+            suggestion="test",
         )
 
     def test_local_path_validation(self):
@@ -610,7 +527,7 @@ class TestURIValidation:
             files=["/absolute/path/file.log"],
             meaning="test",
             context_lines=1,
-            suggestion="test"
+            suggestion="test",
         )
         ErrorDefinition(
             id="test",
@@ -618,7 +535,7 @@ class TestURIValidation:
             files=["file:///absolute/path/file.log"],
             meaning="test",
             context_lines=1,
-            suggestion="test"
+            suggestion="test",
         )
         ErrorDefinition(
             id="test",
@@ -626,7 +543,7 @@ class TestURIValidation:
             files=["/var/log/**/*.log"],
             meaning="test",
             context_lines=1,
-            suggestion="test"
+            suggestion="test",
         )
 
 
@@ -637,11 +554,7 @@ class TestModelSerialization:
         """Test PatternMatcher serialization to dict."""
         from src.domain.models import PatternMatcher, PatternType
 
-        matcher = PatternMatcher(
-            type=PatternType.REGEX,
-            pattern=r"\w+",
-            flags=["IGNORECASE"]
-        )
+        matcher = PatternMatcher(type=PatternType.REGEX, pattern=r"\w+", flags=["IGNORECASE"])
         data = matcher.model_dump()
         assert data["type"] == "regex"
         assert data["pattern"] == r"\w+"
@@ -658,7 +571,7 @@ class TestModelSerialization:
             meaning="An error",
             context_lines=3,
             suggestion="Fix it",
-            metadata={"severity": "high"}
+            metadata={"severity": "high"},
         )
         data = error.model_dump()
         assert data["id"] == "test_error"
@@ -673,13 +586,7 @@ class TestModelSerialization:
         catalog = ErrorCatalog(
             version="1.0.0",
             schema_version="1.0.0",
-            metadata=CatalogMetadata(
-                name="Test",
-                description="Test",
-                author="Author",
-                created=now,
-                updated=now
-            ),
+            metadata=CatalogMetadata(name="Test", description="Test", author="Author", created=now, updated=now),
             errors={
                 "error1": ErrorDefinition(
                     id="error1",
@@ -687,9 +594,9 @@ class TestModelSerialization:
                     files=["/var/log/*.log"],
                     meaning="Error",
                     context_lines=3,
-                    suggestion="Fix"
+                    suggestion="Fix",
                 )
-            }
+            },
         )
         data = catalog.model_dump()
         assert data["version"] == "1.0.0"

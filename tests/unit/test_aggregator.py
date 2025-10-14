@@ -24,7 +24,7 @@ def sample_matches():
             context_before=["Starting job", "Allocating resources"],
             context_after=["Job terminated"],
             timestamp=now,
-            metadata={"host": "node001", "job_id": "123"}
+            metadata={"host": "node001", "job_id": "123"},
         ),
         ErrorMatch(
             error_id="slurm_oom",
@@ -34,7 +34,7 @@ def sample_matches():
             context_before=["Starting job"],
             context_after=["Error handler triggered"],
             timestamp=now,
-            metadata={"host": "node002", "job_id": "124"}
+            metadata={"host": "node002", "job_id": "124"},
         ),
         ErrorMatch(
             error_id="slurm_timeout",
@@ -44,8 +44,8 @@ def sample_matches():
             context_before=["Processing data"],
             context_after=["Job cancelled"],
             timestamp=now,
-            metadata={"host": "node003", "job_id": "125"}
-        )
+            metadata={"host": "node003", "job_id": "125"},
+        ),
     ]
 
 
@@ -168,7 +168,7 @@ class TestGroupByError:
                 context_before=[],
                 context_after=[],
                 timestamp=now,
-                metadata={}
+                metadata={},
             ),
             ErrorMatch(
                 error_id="error1",
@@ -178,8 +178,8 @@ class TestGroupByError:
                 context_before=[],
                 context_after=[],
                 timestamp=now,
-                metadata={}
-            )
+                metadata={},
+            ),
         ]
 
         aggregator = ReportAggregator()
@@ -219,7 +219,7 @@ class TestGroupByFile:
                 context_before=[],
                 context_after=[],
                 timestamp=now,
-                metadata={}
+                metadata={},
             ),
             ErrorMatch(
                 error_id="error2",
@@ -229,7 +229,7 @@ class TestGroupByFile:
                 context_before=[],
                 context_after=[],
                 timestamp=now,
-                metadata={}
+                metadata={},
             ),
             ErrorMatch(
                 error_id="error1",
@@ -239,8 +239,8 @@ class TestGroupByFile:
                 context_before=[],
                 context_after=[],
                 timestamp=now,
-                metadata={}
-            )
+                metadata={},
+            ),
         ]
 
         aggregator = ReportAggregator()
@@ -264,7 +264,7 @@ class TestGroupByFile:
                 context_before=[],
                 context_after=[],
                 timestamp=now,
-                metadata={}
+                metadata={},
             ),
             ErrorMatch(
                 error_id="error2",
@@ -274,7 +274,7 @@ class TestGroupByFile:
                 context_before=[],
                 context_after=[],
                 timestamp=now,
-                metadata={}
+                metadata={},
             ),
             ErrorMatch(
                 error_id="error3",
@@ -284,8 +284,8 @@ class TestGroupByFile:
                 context_before=[],
                 context_after=[],
                 timestamp=now,
-                metadata={}
-            )
+                metadata={},
+            ),
         ]
 
         aggregator = ReportAggregator()
@@ -369,7 +369,7 @@ class TestCalculateStatistics:
                 context_before=[],
                 context_after=[],
                 timestamp=now,
-                metadata={}  # No host
+                metadata={},  # No host
             )
         ]
 
@@ -446,7 +446,7 @@ class TestAggregatorEdgeCases:
                 context_before=[],
                 context_after=[],
                 timestamp=now,
-                metadata={"host": f"node{i % 3}"}
+                metadata={"host": f"node{i % 3}"},
             )
             for i in range(1000)
         ]
@@ -476,7 +476,7 @@ class TestAggregatorEdgeCases:
             context_before=["Context: 前"],
             context_after=["Context: 後"],
             timestamp=now,
-            metadata={"description": "Unicode test: 日本語"}
+            metadata={"description": "Unicode test: 日本語"},
         )
 
         # Save to file
@@ -508,7 +508,7 @@ class TestAggregatorEdgeCases:
                 context_before=[],
                 context_after=[],
                 timestamp=now,
-                metadata={}
+                metadata={},
             ),
             ErrorMatch(
                 error_id="error1",
@@ -518,8 +518,8 @@ class TestAggregatorEdgeCases:
                 context_before=[],
                 context_after=[],
                 timestamp=now,
-                metadata={}
-            )
+                metadata={},
+            ),
         ]
 
         aggregator = ReportAggregator()

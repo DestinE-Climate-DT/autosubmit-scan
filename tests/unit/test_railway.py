@@ -39,9 +39,7 @@ def simple_catalog():
         errors={
             "slurm_oom": ErrorDefinition(
                 id="slurm_oom",
-                pattern=PatternMatcher(
-                    type=PatternType.LITERAL, pattern="slurmstepd: error: Exceeded"
-                ),
+                pattern=PatternMatcher(type=PatternType.LITERAL, pattern="slurmstepd: error: Exceeded"),
                 files=["file:///var/log/slurm/*.log"],
                 meaning="SLURM out of memory error",
                 context_lines=2,
@@ -63,9 +61,7 @@ def simple_catalog():
             ),
             "memory_leak_check": ErrorDefinition(
                 id="memory_leak_check",
-                pattern=PatternMatcher(
-                    type=PatternType.REGEX, pattern=r"memory.*leak"
-                ),
+                pattern=PatternMatcher(type=PatternType.REGEX, pattern=r"memory.*leak"),
                 files=["file:///var/log/*.log"],
                 meaning="Potential memory leak",
                 context_lines=3,
@@ -74,9 +70,7 @@ def simple_catalog():
             ),
             "python_error": ErrorDefinition(
                 id="python_error",
-                pattern=PatternMatcher(
-                    type=PatternType.REGEX, pattern=r"Traceback.*"
-                ),
+                pattern=PatternMatcher(type=PatternType.REGEX, pattern=r"Traceback.*"),
                 files=["file:///var/log/*.log"],
                 meaning="Python exception",
                 context_lines=5,
@@ -224,51 +218,37 @@ def railway_planner():
 # Test RailwayExecutor.get_next_errors
 
 
-def test_get_next_errors_always(
-    railway_executor, simple_catalog, sample_oom_match
-):
+def test_get_next_errors_always(railway_executor, simple_catalog, sample_oom_match):
     """Test getting next errors with ALWAYS condition."""
     error_def = simple_catalog.errors["slurm_oom"]
-    next_errors = railway_executor.get_next_errors(
-        sample_oom_match, error_def, simple_catalog
-    )
+    next_errors = railway_executor.get_next_errors(sample_oom_match, error_def, simple_catalog)
 
     # Should return memory_leak_check (ALWAYS) but not python_error (conditional false)
     assert "memory_leak_check" in next_errors
     assert "python_error" not in next_errors
 
 
-def test_get_next_errors_conditional_true(
-    railway_executor, simple_catalog, sample_python_oom_match
-):
+def test_get_next_errors_conditional_true(railway_executor, simple_catalog, sample_python_oom_match):
     """Test getting next errors with conditional that evaluates to True."""
     error_def = simple_catalog.errors["slurm_oom"]
-    next_errors = railway_executor.get_next_errors(
-        sample_python_oom_match, error_def, simple_catalog
-    )
+    next_errors = railway_executor.get_next_errors(sample_python_oom_match, error_def, simple_catalog)
 
     # Should return both memory_leak_check (ALWAYS) and python_error (conditional true)
     assert "memory_leak_check" in next_errors
     assert "python_error" in next_errors
 
 
-def test_get_next_errors_conditional_false(
-    railway_executor, simple_catalog, sample_oom_match
-):
+def test_get_next_errors_conditional_false(railway_executor, simple_catalog, sample_oom_match):
     """Test getting next errors with conditional that evaluates to False."""
     error_def = simple_catalog.errors["slurm_oom"]
-    next_errors = railway_executor.get_next_errors(
-        sample_oom_match, error_def, simple_catalog
-    )
+    next_errors = railway_executor.get_next_errors(sample_oom_match, error_def, simple_catalog)
 
     # Should only return memory_leak_check (ALWAYS), not python_error
     assert "memory_leak_check" in next_errors
     assert "python_error" not in next_errors
 
 
-def test_get_next_errors_no_match(
-    railway_executor, simple_catalog, sample_oom_match
-):
+def test_get_next_errors_no_match(railway_executor, simple_catalog, sample_oom_match):
     """Test getting next errors when no conditions match."""
     # Create error definition with only failing conditions
     error_def = ErrorDefinition(
@@ -281,56 +261,40 @@ def test_get_next_errors_no_match(
         next_errors=[
             ErrorCondition(
                 error_id="never_error",
-                when=ConditionSpec(
-                    type=ConditionType.FIELD_EQUALS, field="line_number", value=999
-                ),
+                when=ConditionSpec(type=ConditionType.FIELD_EQUALS, field="line_number", value=999),
             ),
         ],
     )
 
-    next_errors = railway_executor.get_next_errors(
-        sample_oom_match, error_def, simple_catalog
-    )
+    next_errors = railway_executor.get_next_errors(sample_oom_match, error_def, simple_catalog)
 
     # Should return empty list
     assert next_errors == []
 
 
-def test_get_next_errors_no_railway(
-    railway_executor, simple_catalog, sample_oom_match
-):
+def test_get_next_errors_no_railway(railway_executor, simple_catalog, sample_oom_match):
     """Test getting next errors when error has no next_errors."""
     error_def = simple_catalog.errors["memory_leak_check"]
-    next_errors = railway_executor.get_next_errors(
-        sample_oom_match, error_def, simple_catalog
-    )
+    next_errors = railway_executor.get_next_errors(sample_oom_match, error_def, simple_catalog)
 
     # Should return empty list
     assert next_errors == []
 
 
-def test_get_next_errors_multiple_conditions(
-    railway_executor, complex_catalog, sample_error_a_match
-):
+def test_get_next_errors_multiple_conditions(railway_executor, complex_catalog, sample_error_a_match):
     """Test getting next errors with multiple conditions."""
     error_def = complex_catalog.errors["error_a"]
-    next_errors = railway_executor.get_next_errors(
-        sample_error_a_match, error_def, complex_catalog
-    )
+    next_errors = railway_executor.get_next_errors(sample_error_a_match, error_def, complex_catalog)
 
     # Should return both error_b (ALWAYS) and error_c (line_number == 42)
     assert "error_b" in next_errors
     assert "error_c" in next_errors
 
 
-def test_get_next_errors_preserves_order(
-    railway_executor, simple_catalog, sample_python_oom_match
-):
+def test_get_next_errors_preserves_order(railway_executor, simple_catalog, sample_python_oom_match):
     """Test that get_next_errors preserves order of next_errors list."""
     error_def = simple_catalog.errors["slurm_oom"]
-    next_errors = railway_executor.get_next_errors(
-        sample_python_oom_match, error_def, simple_catalog
-    )
+    next_errors = railway_executor.get_next_errors(sample_python_oom_match, error_def, simple_catalog)
 
     # Should preserve order: memory_leak_check, then python_error
     assert next_errors == ["memory_leak_check", "python_error"]
@@ -465,9 +429,7 @@ def test_build_execution_plan_nonexistent_error(railway_planner, simple_catalog)
     assert plan == {}
 
 
-def test_get_next_errors_invalid_error_id_in_condition(
-    railway_executor, simple_catalog, sample_oom_match
-):
+def test_get_next_errors_invalid_error_id_in_condition(railway_executor, simple_catalog, sample_oom_match):
     """Test get_next_errors when condition references non-existent error."""
     # Create error definition with invalid next error ID
     error_def = ErrorDefinition(
@@ -485,9 +447,7 @@ def test_get_next_errors_invalid_error_id_in_condition(
         ],
     )
 
-    next_errors = railway_executor.get_next_errors(
-        sample_oom_match, error_def, simple_catalog
-    )
+    next_errors = railway_executor.get_next_errors(sample_oom_match, error_def, simple_catalog)
 
     # Should still return the error_id (validation is done elsewhere)
     assert "nonexistent_error" in next_errors

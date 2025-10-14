@@ -193,7 +193,7 @@ class CallablePatternMatcher(BasePatternMatcher):
         result = self.callable(text)
 
         if not isinstance(result, bool):
-            raise TypeError(f"Callable {self.pattern.pattern} must return bool, " f"got {type(result).__name__}")
+            raise TypeError(f"Callable {self.pattern.pattern} must return bool, got {type(result).__name__}")
 
         return result
 
@@ -209,7 +209,7 @@ class CallablePatternMatcher(BasePatternMatcher):
         Raises:
             NotImplementedError: Callables don't support find_all
         """
-        raise NotImplementedError("Callable pattern matchers cannot provide match positions. " "Use match() method instead.")
+        raise NotImplementedError("Callable pattern matchers cannot provide match positions. Use match() method instead.")
 
 
 class PatternMatcherFactory:

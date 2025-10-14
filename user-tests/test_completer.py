@@ -2,6 +2,7 @@
 """Quick test script for the fsspec path completer."""
 
 from prompt_toolkit.shortcuts import prompt
+
 from src.cli.completion import GlobPatternCompleter
 
 

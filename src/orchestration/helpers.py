@@ -322,6 +322,6 @@ def get_error_definition(catalog: ErrorCatalog, error_id: str) -> ErrorDefinitio
         'Job was killed due to out-of-memory condition'
     """
     if error_id not in catalog.errors:
-        raise KeyError(f"Error ID '{error_id}' not found in catalog. " f"Available errors: {list(catalog.errors.keys())}")
+        raise KeyError(f"Error ID '{error_id}' not found in catalog. Available errors: {list(catalog.errors.keys())}")
 
     return catalog.errors[error_id]

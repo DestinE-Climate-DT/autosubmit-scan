@@ -7,7 +7,6 @@ from Iteration 2 for use in Snakemake rules:
 - extract_matches_with_context: Extract full ErrorMatch objects with context
 """
 
-
 from src.domain.models import ErrorDefinition, ErrorMatch, PatternMatcher
 from src.matching.context_extractor import ContextExtractor
 from src.matching.match_builder import ErrorMatchBuilder

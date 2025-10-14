@@ -19,22 +19,14 @@ import pytest
 
 def pytest_configure(config):
     """Configure custom markers."""
-    config.addinivalue_line(
-        "markers", "unit: marks tests as unit tests (fast, no external dependencies)"
-    )
+    config.addinivalue_line("markers", "unit: marks tests as unit tests (fast, no external dependencies)")
     config.addinivalue_line(
         "markers",
         "integration: marks tests as integration tests (require external services)",
     )
-    config.addinivalue_line(
-        "markers", "e2e: marks tests as end-to-end tests (full system tests)"
-    )
-    config.addinivalue_line(
-        "markers", "remote: marks tests that require remote services (S3, SFTP, FTP)"
-    )
-    config.addinivalue_line(
-        "markers", "slow: marks tests as slow running (> 1 second)"
-    )
+    config.addinivalue_line("markers", "e2e: marks tests as end-to-end tests (full system tests)")
+    config.addinivalue_line("markers", "remote: marks tests that require remote services (S3, SFTP, FTP)")
+    config.addinivalue_line("markers", "slow: marks tests as slow running (> 1 second)")
 
 
 def is_ci() -> bool:

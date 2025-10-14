@@ -3,7 +3,6 @@
 Extracts lines before and after a matched line for better error understanding.
 """
 
-
 from pydantic import BaseModel
 
 from src.matching.stream_reader import FileStream

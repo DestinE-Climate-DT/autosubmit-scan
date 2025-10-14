@@ -1,6 +1,5 @@
 """Unit tests for template renderer."""
 
-
 import pytest
 
 
@@ -10,20 +9,14 @@ def sample_report_data():
     return {
         "title": "Error Scan Report",
         "date": "2025-10-08",
-        "summary": {
-            "totalMatches": 42,
-            "errorTypes": 5,
-            "filesScanned": 12
-        },
+        "summary": {"totalMatches": 42, "errorTypes": 5, "filesScanned": 12},
         "errors_by_type": {
             "slurm_oom": [
                 {"file": "job123.log", "line": 42, "text": "Out of memory"},
-                {"file": "job124.log", "line": 56, "text": "OOM killed"}
+                {"file": "job124.log", "line": 56, "text": "OOM killed"},
             ],
-            "slurm_timeout": [
-                {"file": "job125.log", "line": 100, "text": "TIMEOUT"}
-            ]
-        }
+            "slurm_timeout": [{"file": "job125.log", "line": 100, "text": "TIMEOUT"}],
+        },
     }
 
 

@@ -20,7 +20,7 @@ class TestContextExtractor:
     @pytest.fixture
     def temp_file(self):
         """Create a temporary file with test content."""
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.log') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".log") as f:
             f.write("Line 1\n")
             f.write("Line 2\n")
             f.write("Line 3\n")
@@ -40,7 +40,7 @@ class TestContextExtractor:
     @pytest.fixture
     def single_line_file(self):
         """Create a single-line file."""
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.log') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".log") as f:
             f.write("Only line")
             temp_path = f.name
 
@@ -51,7 +51,7 @@ class TestContextExtractor:
     @pytest.fixture
     def three_line_file(self):
         """Create a three-line file."""
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.log') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".log") as f:
             f.write("First\n")
             f.write("Second\n")
             f.write("Third\n")
@@ -218,10 +218,7 @@ class TestContextResult:
     def test_context_result_creation(self):
         """Test creating ContextResult."""
         result = ContextResult(
-            before=["Line 1\n", "Line 2\n"],
-            matched_line="Line 3\n",
-            after=["Line 4\n", "Line 5\n"],
-            line_number=3
+            before=["Line 1\n", "Line 2\n"], matched_line="Line 3\n", after=["Line 4\n", "Line 5\n"], line_number=3
         )
 
         assert result.before == ["Line 1\n", "Line 2\n"]
@@ -231,12 +228,7 @@ class TestContextResult:
 
     def test_context_result_empty_context(self):
         """Test ContextResult with no context lines."""
-        result = ContextResult(
-            before=[],
-            matched_line="Only line\n",
-            after=[],
-            line_number=1
-        )
+        result = ContextResult(before=[], matched_line="Only line\n", after=[], line_number=1)
 
         assert result.before == []
         assert result.matched_line == "Only line\n"
@@ -246,10 +238,7 @@ class TestContextResult:
     def test_context_result_get_full_text(self):
         """Test getting full context as single text block."""
         result = ContextResult(
-            before=["Line 1\n", "Line 2\n"],
-            matched_line="Line 3\n",
-            after=["Line 4\n", "Line 5\n"],
-            line_number=3
+            before=["Line 1\n", "Line 2\n"], matched_line="Line 3\n", after=["Line 4\n", "Line 5\n"], line_number=3
         )
 
         full_text = result.get_full_text()
@@ -259,10 +248,7 @@ class TestContextResult:
     def test_context_result_total_lines(self):
         """Test getting total number of context lines."""
         result = ContextResult(
-            before=["Line 1\n", "Line 2\n"],
-            matched_line="Line 3\n",
-            after=["Line 4\n", "Line 5\n"],
-            line_number=3
+            before=["Line 1\n", "Line 2\n"], matched_line="Line 3\n", after=["Line 4\n", "Line 5\n"], line_number=3
         )
 
         assert result.total_lines() == 5
