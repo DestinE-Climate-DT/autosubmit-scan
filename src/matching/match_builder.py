@@ -3,7 +3,7 @@
 Builds ErrorMatch objects from error definitions and context results.
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from src.domain.models import ErrorDefinition, ErrorMatch
@@ -60,6 +60,6 @@ class ErrorMatchBuilder:
             matched_text=matched_text,
             context_before=context.before,
             context_after=context.after,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
             metadata=metadata,
         )
