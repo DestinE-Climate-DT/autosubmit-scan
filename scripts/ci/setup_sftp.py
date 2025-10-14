@@ -19,7 +19,6 @@ import os
 import sys
 import time
 from pathlib import Path
-from typing import Optional
 
 from loguru import logger
 
@@ -50,8 +49,8 @@ class SFTPSetup:
         self.port = port
         self.username = username
         self.password = password
-        self.ssh_client: Optional[paramiko.SSHClient] = None
-        self.sftp_client: Optional[paramiko.SFTPClient] = None
+        self.ssh_client: paramiko.SSHClient | None = None
+        self.sftp_client: paramiko.SFTPClient | None = None
 
         logger.info(f"SFTP client configured for {username}@{host}:{port}")
 
@@ -175,9 +174,7 @@ class SFTPSetup:
             logger.error(f"Failed to create directory {remote_path}: {e}")
             return False
 
-    def upload_file(
-        self, local_path: Path, remote_path: str
-    ) -> bool:
+    def upload_file(self, local_path: Path, remote_path: str) -> bool:
         """
         Upload a file to SFTP server.
 
@@ -204,9 +201,7 @@ class SFTPSetup:
 
             # Upload file
             self.sftp_client.put(str(local_path), remote_path)
-            logger.success(
-                f"Uploaded {local_path.name} to {self.username}@{self.host}:{remote_path}"
-            )
+            logger.success(f"Uploaded {local_path.name} to {self.username}@{self.host}:{remote_path}")
             return True
 
         except Exception as e:
@@ -328,7 +323,7 @@ def main():
 
     # Verify all uploads
     logger.info("Verifying uploaded files...")
-    for local_path, remote_path in test_files:
+    for _local_path, remote_path in test_files:
         if not sftp.verify_file(remote_path):
             success = False
 

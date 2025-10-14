@@ -20,7 +20,6 @@ import sys
 import time
 from ftplib import FTP, error_perm, error_temp
 from pathlib import Path
-from typing import Optional
 
 from loguru import logger
 
@@ -40,7 +39,7 @@ class FTPSetup:
         self.port = port
         self.username = username
         self.password = password
-        self.ftp_client: Optional[FTP] = None
+        self.ftp_client: FTP | None = None
 
         logger.info(f"FTP client configured for {username}@{host}:{port}")
 
@@ -176,9 +175,7 @@ class FTPSetup:
             logger.error(f"Failed to create directory {remote_path}: {e}")
             return False
 
-    def upload_file(
-        self, local_path: Path, remote_path: str
-    ) -> bool:
+    def upload_file(self, local_path: Path, remote_path: str) -> bool:
         """
         Upload a file to FTP server.
 
@@ -208,9 +205,7 @@ class FTPSetup:
             with open(local_path, "rb") as f:
                 self.ftp_client.storbinary(f"STOR {remote_path}", f)
 
-            logger.success(
-                f"Uploaded {local_path.name} to {self.username}@{self.host}:{remote_path}"
-            )
+            logger.success(f"Uploaded {local_path.name} to {self.username}@{self.host}:{remote_path}")
             return True
 
         except error_perm as e:
@@ -346,7 +341,7 @@ def main():
 
     # Verify all uploads
     logger.info("Verifying uploaded files...")
-    for local_path, remote_path in test_files:
+    for _local_path, remote_path in test_files:
         if not ftp.verify_file(remote_path):
             success = False
 

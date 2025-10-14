@@ -18,7 +18,6 @@ import os
 import sys
 import time
 from pathlib import Path
-from typing import Optional
 
 from loguru import logger
 
@@ -117,9 +116,7 @@ class MinIOSetup:
                 logger.error(f"Error checking bucket '{bucket_name}': {e}")
                 return False
 
-    def upload_file(
-        self, local_path: Path, bucket_name: str, object_key: str
-    ) -> bool:
+    def upload_file(self, local_path: Path, bucket_name: str, object_key: str) -> bool:
         """
         Upload a file to MinIO.
 
@@ -141,9 +138,7 @@ class MinIOSetup:
                 bucket_name,
                 object_key,
             )
-            logger.success(
-                f"Uploaded {local_path.name} to s3://{bucket_name}/{object_key}"
-            )
+            logger.success(f"Uploaded {local_path.name} to s3://{bucket_name}/{object_key}")
             return True
         except ClientError as e:
             logger.error(f"Failed to upload {local_path}: {e}")
@@ -235,7 +230,7 @@ def main():
 
     # Verify all uploads
     logger.info("Verifying uploaded files...")
-    for local_path, bucket, key in test_files:
+    for _local_path, bucket, key in test_files:
         if not minio.verify_file(bucket, key):
             success = False
 
