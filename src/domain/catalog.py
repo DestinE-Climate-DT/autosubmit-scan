@@ -7,7 +7,6 @@ This module provides functions for:
 - Converting JSON-LD to catalogs
 """
 
-import os
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -19,20 +18,8 @@ from jinja2 import Template
 from loguru import logger
 
 from src.domain.models import ErrorCatalog
-
-
-def is_fsspec_uri(path: str) -> bool:
-    """Check if a path is an fsspec URI (has a protocol).
-
-    Args:
-        path: Path or URI string
-
-    Returns:
-        True if path contains an fsspec protocol, False otherwise
-    """
-    # fsspec URIs have the format: protocol://path
-    # Local files can be absolute (/path) or relative (path)
-    return "://" in path and not path.startswith("file://")
+from src.infrastructure.github import GitHubURIParser
+from src.infrastructure.uri_utils import is_fsspec_uri
 
 
 def load_catalog(path: str) -> ErrorCatalog:
@@ -64,40 +51,14 @@ def load_catalog(path: str) -> ErrorCatalog:
         # fsspec has issues with refs containing slashes, so we parse manually
         if path.startswith("github://"):
             try:
-                # Parse: github://org:repo@ref/path/to/file
-                rest = path[len("github://"):]
-                org_repo, ref_and_path = rest.split("@", 1)
-                org, repo = org_repo.split(":", 1)
+                # Parse GitHub URI using infrastructure module
+                org, repo, ref, file_path = GitHubURIParser.parse(
+                    path,
+                    path_markers=["templates/", "examples/", "src/", "config/", "catalogs/"]
+                )
 
-                # Find where the ref ends and path begins
-                # We look for common path patterns (templates/, examples/, etc.)
-                path_markers = ["templates/", "examples/", "src/", "config/", "catalogs/"]
-                ref = None
-                file_path = None
-
-                for marker in path_markers:
-                    if marker in ref_and_path:
-                        ref, file_path = ref_and_path.split(f"/{marker}", 1)
-                        file_path = marker + file_path
-                        break
-
-                if ref is None or file_path is None:
-                    raise ValueError(f"Cannot parse GitHub URI path (missing known path marker): {path}")
-
-                # Create GitHub filesystem (use 'sha' parameter, not 'ref')
-                # Check for GitHub token to avoid rate limiting
-                github_token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
-                github_username = os.environ.get("GITHUB_USERNAME") or os.environ.get("GH_USERNAME")
-
-                if github_token and github_username:
-                    fs = fsspec.filesystem("github", org=org, repo=repo, sha=ref, username=github_username, token=github_token)
-                    logger.debug(f"Using authenticated GitHub access as {github_username}")
-                elif github_token or github_username:
-                    logger.warning("GitHub authentication requires both GITHUB_TOKEN and GITHUB_USERNAME - falling back to unauthenticated")
-                    fs = fsspec.filesystem("github", org=org, repo=repo, sha=ref)
-                else:
-                    fs = fsspec.filesystem("github", org=org, repo=repo, sha=ref)
-                    logger.debug("No GitHub credentials found - using unauthenticated access (rate limited)")
+                # Create GitHub filesystem using infrastructure module
+                fs = GitHubURIParser.create_filesystem(org, repo, ref)
 
                 with fs.open(file_path, "r") as f:
                     data = yaml.safe_load(f)

@@ -15,6 +15,9 @@ import fsspec
 from prompt_toolkit.completion import Completer, Completion
 from prompt_toolkit.document import Document
 
+from src.infrastructure.ssh_config import SSHConfigParser
+from src.infrastructure.uri_utils import normalize_uri_for_fsspec
+
 __all__ = ["normalize_uri_for_fsspec", "get_fsspec_filesystem", "FsspecPathCompleter", "GlobPatternCompleter"]
 
 
@@ -22,48 +25,10 @@ __all__ = ["normalize_uri_for_fsspec", "get_fsspec_filesystem", "FsspecPathCompl
 _FILESYSTEM_CACHE = {}
 
 
-def normalize_uri_for_fsspec(uri: str) -> str:
-    """Convert rsync-style URIs to fsspec format.
-
-    Users prefer rsync-style notation (ssh://host:/path), but fsspec
-    expects standard URIs (ssh://host/path). This function converts
-    between the two formats.
-
-    Converts:
-        ssh://lumi:/path/to/file -> ssh://lumi/path/to/file
-        sftp://host:/path -> sftp://host/path
-        ssh://user@host:/path -> ssh://user@host/path
-
-    Args:
-        uri: URI in rsync-style or fsspec format
-
-    Returns:
-        URI in fsspec format
-
-    Examples:
-        >>> normalize_uri_for_fsspec("ssh://lumi:/home/test.txt")
-        'ssh://lumi/home/test.txt'
-        >>> normalize_uri_for_fsspec("ssh://lumi/home/test.txt")
-        'ssh://lumi/home/test.txt'
-        >>> normalize_uri_for_fsspec("/local/path")
-        '/local/path'
-    """
-    # Check if it's an SSH/SFTP URI with colon notation
-    if "://" in uri:
-        scheme, rest = uri.split("://", 1)
-        if scheme in ("ssh", "sftp"):
-            # Check if there's a colon after the hostname
-            # Format: ssh://hostname:/path or ssh://user@hostname:/path
-            if ":/" in rest:
-                # Remove the colon: hostname:/path -> hostname/path
-                rest = rest.replace(":/", "/", 1)
-                return f"{scheme}://{rest}"
-
-    return uri
-
-
-def _parse_ssh_config_standalone(alias: str) -> dict[str, str]:
+def _parse_ssh_config_standalone(alias: str) -> dict[str, str | int | None]:
     """Parse SSH config to get connection details for an alias.
+
+    This is a wrapper around the infrastructure SSHConfigParser for backward compatibility.
 
     Args:
         alias: SSH host alias (e.g., 'mn5', 'lumi')
@@ -71,57 +36,7 @@ def _parse_ssh_config_standalone(alias: str) -> dict[str, str]:
     Returns:
         Dictionary with 'hostname', 'user', 'port', 'identity_file'
     """
-    ssh_config_path = Path.home() / ".ssh" / "config"
-    config = {
-        "hostname": alias,  # Default to alias if not found
-        "user": os.getenv("USER"),
-        "port": 22,
-        "identity_file": None,
-    }
-
-    if not ssh_config_path.exists():
-        return config
-
-    try:
-        in_target_host = False
-
-        with open(ssh_config_path) as f:
-            for line in f:
-                line = line.strip()
-
-                # New Host section
-                if line.startswith("Host "):
-                    host_line = line[5:].strip()
-                    # Check if this is our target host
-                    hosts_in_line = host_line.split()
-                    in_target_host = alias in hosts_in_line
-                    continue
-
-                # Parse config options for our target host
-                if in_target_host and line:
-                    parts = line.split(None, 1)
-                    if len(parts) == 2:
-                        key, value = parts
-                        key_lower = key.lower()
-
-                        if key_lower == "hostname":
-                            config["hostname"] = value
-                        elif key_lower == "user":
-                            config["user"] = value
-                        elif key_lower == "port":
-                            try:
-                                config["port"] = int(value)
-                            except ValueError:
-                                pass
-                        elif key_lower == "identityfile":
-                            # Expand ~ in identity file path
-                            identity_path = os.path.expanduser(value)
-                            config["identity_file"] = identity_path
-
-    except Exception:
-        pass
-
-    return config
+    return SSHConfigParser.parse_host(alias)
 
 
 def get_fsspec_filesystem(uri: str):
@@ -302,31 +217,14 @@ class FsspecPathCompleter(Completer):
         if self._ssh_hosts is not None:
             return self._ssh_hosts
 
-        hosts = []
-        ssh_config_path = Path.home() / ".ssh" / "config"
-
-        if ssh_config_path.exists():
-            try:
-                with open(ssh_config_path) as f:
-                    for line in f:
-                        line = line.strip()
-                        # Match "Host <hostname>" or "Host <pattern>"
-                        if line.startswith("Host ") and not line.startswith("Host *"):
-                            host_line = line[5:].strip()
-                            # Skip patterns with wildcards
-                            if "*" not in host_line and "?" not in host_line:
-                                # Can have multiple hosts on one line
-                                for host in host_line.split():
-                                    if host and host not in hosts:
-                                        hosts.append(host)
-            except Exception:
-                pass
-
+        hosts = SSHConfigParser.get_hosts()
         self._ssh_hosts = hosts
         return hosts
 
-    def _parse_ssh_config(self, alias: str) -> dict[str, str]:
+    def _parse_ssh_config(self, alias: str) -> dict[str, str | int | None]:
         """Parse SSH config to get connection details for an alias.
+
+        This is a wrapper around the infrastructure SSHConfigParser for backward compatibility.
 
         Args:
             alias: SSH host alias (e.g., 'mn5', 'lumi')
@@ -334,57 +232,7 @@ class FsspecPathCompleter(Completer):
         Returns:
             Dictionary with 'hostname', 'user', 'port', 'identity_file'
         """
-        ssh_config_path = Path.home() / ".ssh" / "config"
-        config = {
-            "hostname": alias,  # Default to alias if not found
-            "user": os.getenv("USER"),
-            "port": 22,
-            "identity_file": None,
-        }
-
-        if not ssh_config_path.exists():
-            return config
-
-        try:
-            in_target_host = False
-
-            with open(ssh_config_path) as f:
-                for line in f:
-                    line = line.strip()
-
-                    # New Host section
-                    if line.startswith("Host "):
-                        host_line = line[5:].strip()
-                        # Check if this is our target host
-                        hosts_in_line = host_line.split()
-                        in_target_host = alias in hosts_in_line
-                        continue
-
-                    # Parse config options for our target host
-                    if in_target_host and line:
-                        parts = line.split(None, 1)
-                        if len(parts) == 2:
-                            key, value = parts
-                            key_lower = key.lower()
-
-                            if key_lower == "hostname":
-                                config["hostname"] = value
-                            elif key_lower == "user":
-                                config["user"] = value
-                            elif key_lower == "port":
-                                try:
-                                    config["port"] = int(value)
-                                except ValueError:
-                                    pass
-                            elif key_lower == "identityfile":
-                                # Expand ~ in identity file path
-                                identity_path = os.path.expanduser(value)
-                                config["identity_file"] = identity_path
-
-        except Exception:
-            pass
-
-        return config
+        return SSHConfigParser.parse_host(alias)
 
     def _complete_path(self, uri: str) -> list[Completion]:
         """Complete filesystem paths for a given URI."""
