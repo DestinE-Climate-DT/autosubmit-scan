@@ -24,7 +24,7 @@ class ReportGenerator:
         Args:
             matches: List of ErrorMatch instances
             catalog: ErrorCatalog containing error definitions
-            metadata: Additional metadata (author, description, etc.)
+            metadata: Additional metadata (author, description, catalog_uri, catalog_retrieved_date, etc.)
 
         Returns:
             JSON-LD report as a dictionary
@@ -34,6 +34,9 @@ class ReportGenerator:
 
         # Calculate summary statistics
         summary = self._calculate_summary(matches)
+
+        # Build error definitions array for embedding
+        error_definitions = self._build_error_definitions(matches, catalog)
 
         # Convert matches to JSON-LD
         jsonld_matches = []
@@ -45,15 +48,32 @@ class ReportGenerator:
         author_info = metadata.get("author", {})
         author = {"@type": "Person", "name": author_info.get("name", "Unknown"), "email": author_info.get("email", "")}
 
+        # Build catalog reference
+        catalog_ref = {
+            "@id": metadata.get("catalog_uri", "unknown"),
+            "@type": "ErrorCatalog",
+            "version": catalog.version,
+            "dateRetrieved": metadata.get("catalog_retrieved_date", now),
+        }
+
         # Build complete report
         report = {
-            "@context": {"@vocab": "https://schema.org/", "error_scan": "https://destine.example/error-scan/schema#"},
+            "@context": {
+                "@vocab": "https://schema.org/",
+                "as": "https://destine-climate-dt.github.io/autosubmit-scan/schema#",
+                "ErrorReport": "as:ErrorReport",
+                "ErrorMatch": "as:ErrorMatch",
+                "ErrorDefinition": "as:ErrorDefinition",
+                "ErrorCatalog": "as:ErrorCatalog",
+            },
             "@type": "ErrorReport",
             "@id": report_id,
             "version": "1.0.0",
             "dateCreated": now,
             "author": author,
+            "catalog": catalog_ref,
             "summary": summary,
+            "defines": error_definitions,
             "hasPart": jsonld_matches,
         }
 
@@ -90,6 +110,46 @@ class ReportGenerator:
             "hostsScanned": sorted(list(hosts)),
         }
 
+    def _build_error_definitions(self, matches: list[ErrorMatch], catalog: ErrorCatalog) -> list[dict[str, Any]]:
+        """Build error definitions array for embedding in report.
+
+        Args:
+            matches: List of ErrorMatch instances
+            catalog: ErrorCatalog containing error definitions
+
+        Returns:
+            List of ErrorDefinition objects referenced by matches
+        """
+        # Get unique error IDs from matches
+        error_ids = set(m.error_id for m in matches)
+
+        definitions = []
+        for error_id in sorted(error_ids):
+            error_def = catalog.errors.get(error_id)
+            if error_def:
+                definitions.append(
+                    {
+                        "@type": "ErrorDefinition",
+                        "@id": f"#{error_id}",
+                        "identifier": error_id,
+                        "meaning": error_def.meaning,
+                        "suggestion": error_def.suggestion,
+                    }
+                )
+            else:
+                # Fallback for missing definitions
+                definitions.append(
+                    {
+                        "@type": "ErrorDefinition",
+                        "@id": f"#{error_id}",
+                        "identifier": error_id,
+                        "meaning": f"Error {error_id}",
+                        "suggestion": "No suggestion available",
+                    }
+                )
+
+        return definitions
+
     def _match_to_jsonld(self, match: ErrorMatch, catalog: ErrorCatalog) -> dict[str, Any]:
         """Convert an ErrorMatch to JSON-LD format.
 
@@ -102,32 +162,28 @@ class ReportGenerator:
         """
         match_id = f"urn:uuid:{uuid.uuid4()}"
 
-        # Get error definition from catalog
-        error_def = catalog.errors.get(match.error_id)
-
-        # Build about section with error definition details
-        if error_def:
-            about = {"@type": "CreativeWork", "headline": error_def.meaning, "description": error_def.suggestion}
-        else:
-            # Fallback for missing error definitions
-            about = {"@type": "CreativeWork", "headline": f"Error {match.error_id}", "description": "No description available"}
-
         # Build context
         context = {"before": match.context_before, "after": match.context_after}
 
         # Convert timestamp to ISO format
         timestamp_iso = match.timestamp.isoformat() + "Z"
 
+        # Build metadata object
+        metadata_obj = {
+            "host": match.metadata.get("host", "unknown"),
+            "experiment_id": match.metadata.get("experiment_id", "unknown"),
+        }
+
         jsonld_match = {
             "@type": "ErrorMatch",
             "@id": match_id,
-            "errorDefinition": match.error_id,
+            "errorDefinition": {"@id": f"#{match.error_id}"},
             "url": match.file_uri,
-            "position": match.line_number,
+            "lineNumber": match.line_number,
             "text": match.matched_text,
             "dateFound": timestamp_iso,
-            "about": about,
             "context": context,
+            "metadata": metadata_obj,
         }
 
         return jsonld_match

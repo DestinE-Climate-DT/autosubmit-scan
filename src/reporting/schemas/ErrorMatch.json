@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://destine-climate-dt.github.io/autosubmit-scan/schema/ErrorMatch.json",
+  "title": "ErrorMatch",
+  "description": "A single instance of an error found in a file",
+  "type": "object",
+  "properties": {
+    "@type": {
+      "type": "string",
+      "const": "ErrorMatch",
+      "description": "JSON-LD type identifier"
+    },
+    "@id": {
+      "type": "string",
+      "pattern": "^urn:uuid:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "description": "Unique identifier for this error match (UUID URN)"
+    },
+    "errorDefinition": {
+      "type": "object",
+      "properties": {
+        "@id": {
+          "type": "string",
+          "pattern": "^#",
+          "description": "Reference to ErrorDefinition by ID"
+        }
+      },
+      "required": ["@id"],
+      "additionalProperties": false,
+      "description": "Cross-reference to the error definition"
+    },
+    "url": {
+      "type": "string",
+      "description": "URI of the file where the error was found (supports fsspec protocols)"
+    },
+    "lineNumber": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Line number in the file where the error was matched"
+    },
+    "text": {
+      "type": "string",
+      "description": "The actual text that matched the error pattern"
+    },
+    "dateFound": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when the error was detected"
+    },
+    "context": {
+      "$ref": "Context.json",
+      "description": "Lines of text surrounding the error match"
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "host": {
+          "type": "string",
+          "description": "Hostname where the error occurred"
+        },
+        "experiment_id": {
+          "type": "string",
+          "description": "Autosubmit experiment identifier"
+        }
+      },
+      "required": ["host", "experiment_id"],
+      "additionalProperties": false,
+      "description": "Additional metadata about the error occurrence"
+    }
+  },
+  "required": [
+    "@type",
+    "@id",
+    "errorDefinition",
+    "url",
+    "lineNumber",
+    "text",
+    "dateFound",
+    "context",
+    "metadata"
+  ],
+  "additionalProperties": false
+}

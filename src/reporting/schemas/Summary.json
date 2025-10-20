@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://destine-climate-dt.github.io/autosubmit-scan/schema/Summary.json",
+  "title": "Summary",
+  "description": "Aggregate statistics for an error scan report",
+  "type": "object",
+  "properties": {
+    "totalMatches": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total number of error matches found across all files"
+    },
+    "errorTypes": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of distinct error types detected"
+    },
+    "filesScanned": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total number of files scanned for errors"
+    },
+    "hostsScanned": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "description": "List of unique hostnames where errors were found"
+    }
+  },
+  "required": [
+    "totalMatches",
+    "errorTypes",
+    "filesScanned",
+    "hostsScanned"
+  ],
+  "additionalProperties": false
+}

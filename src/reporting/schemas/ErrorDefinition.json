@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://destine-climate-dt.github.io/autosubmit-scan/schema/ErrorDefinition.json",
+  "title": "ErrorDefinition",
+  "description": "Definition of an error type with its meaning and suggested resolution",
+  "type": "object",
+  "properties": {
+    "identifier": {
+      "type": "string",
+      "description": "Unique identifier for this error type (e.g., 'slurm_oom', 'python_import_error')"
+    },
+    "meaning": {
+      "type": "string",
+      "description": "Human-readable explanation of what this error indicates"
+    },
+    "suggestion": {
+      "type": "string",
+      "description": "Recommended action to resolve or mitigate this error"
+    }
+  },
+  "required": [
+    "identifier",
+    "meaning",
+    "suggestion"
+  ],
+  "additionalProperties": false
+}

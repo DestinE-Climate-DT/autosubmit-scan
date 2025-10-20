@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://destine-climate-dt.github.io/autosubmit-scan/schema/Context.json",
+  "title": "Context",
+  "description": "Lines of text surrounding an error match, providing context for understanding the error",
+  "type": "object",
+  "properties": {
+    "before": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lines of text appearing before the matched line"
+    },
+    "after": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lines of text appearing after the matched line"
+    }
+  },
+  "required": [
+    "before",
+    "after"
+  ],
+  "additionalProperties": false
+}
