@@ -37,26 +37,40 @@ def get_file_hash(uri: str) -> str:
 def expand_fsspec_patterns(patterns: list[str]) -> list[str]:
     """Expand glob patterns to list of matching file URIs.
 
-    Supports all fsspec protocols:
+    Supports all fsspec protocols with proper URI reconstruction:
     - Local paths: /var/log/*.log
     - File protocol: file:///var/log/*.log
     - S3: s3://bucket/**/*.log
-    - SSH: ssh://user@host/path/*.log
-    - SFTP: sftp://user@host/path/*.log
+    - SSH: ssh://user@host/path/*.log (rsync-style: ssh://host:/path)
+    - SFTP: sftp://user@host/path/*.log (rsync-style: sftp://host:/path)
     - FTP: ftp://user:pass@host/path/*.log
 
-    Args:
-        patterns: List of glob patterns (fsspec compatible)
+    Implementation notes:
+    - Uses SSH config parsing for SSH/SFTP hosts
+    - Reconstructs full URIs from fsspec glob results
+    - Handles rsync-style SSH notation (host:/path vs host/path)
+    - Deduplicates results across multiple patterns
 
-    Returns:
+    Parameters
+    ----------
+    patterns : list[str]
+        List of glob patterns (fsspec compatible)
+
+    Returns
+    -------
+    list[str]
         List of matched file URIs (deduplicated and sorted)
 
-    Examples:
-        >>> expand_fsspec_patterns(["/var/log/*.log"])
-        ['/var/log/app.log', '/var/log/system.log']
+    Examples
+    --------
+    >>> expand_fsspec_patterns(["/var/log/*.log"])
+    ['/var/log/app.log', '/var/log/system.log']
 
-        >>> expand_fsspec_patterns(["s3://bucket/logs/**/*.log"])
-        ['s3://bucket/logs/2024/01/app.log', ...]
+    >>> expand_fsspec_patterns(["s3://bucket/logs/**/*.log"])
+    ['s3://bucket/logs/2024/01/app.log', ...]
+
+    >>> expand_fsspec_patterns(["ssh://mn5:/home/user/*.log"])
+    ['ssh://mn5:/home/user/app.log', 'ssh://mn5:/home/user/error.log']
     """
     all_files = []
 
@@ -87,6 +101,8 @@ def expand_fsspec_patterns(patterns: list[str]) -> list[str]:
             matched_files = fs.glob(glob_path)
 
             # Convert to full URIs
+            # fsspec.glob() returns paths without the protocol and hostname,
+            # so we need to reconstruct the full URI for each matched file
             for matched_file in matched_files:
                 # Build full URI based on pattern format
                 if pattern.startswith("file://"):
@@ -99,14 +115,17 @@ def expand_fsspec_patterns(patterns: list[str]) -> list[str]:
                     # matched_file is just the path, so we need to add back the netloc
                     if parsed.netloc:
                         # For SSH/SFTP, use rsync-style format (with colon before path)
-                        # This is required by our Pydantic validation
+                        # This matches user expectations (ssh://host:/path) and is required
+                        # by our Pydantic URI validation which expects rsync-style notation
                         if protocol_part in ("ssh", "sftp"):
                             # Rsync-style: ssh://host:/path
+                            # The colon after the hostname indicates rsync-style path notation
                             full_uri = f"{protocol_part}://{parsed.netloc}:/{matched_file.lstrip('/')}"
                         else:
-                            # Other protocols use standard format
+                            # Other protocols (S3, FTP) use standard URI format
                             full_uri = f"{protocol_part}://{parsed.netloc}/{matched_file.lstrip('/')}"
                     else:
+                        # No netloc found (shouldn't happen, but handle gracefully)
                         full_uri = f"{protocol_part}://{matched_file}"
                 else:
                     # Local path without protocol - keep as-is
@@ -114,10 +133,20 @@ def expand_fsspec_patterns(patterns: list[str]) -> list[str]:
 
                 all_files.append(full_uri)
 
-        except (FileNotFoundError, OSError, IndexError, ValueError):
+        except (FileNotFoundError, OSError, IndexError, ValueError, Exception) as e:
             # Pattern matched no files or path doesn't exist
             # This is not necessarily an error - glob patterns can match nothing
-            continue
+            # Also catch asyncssh.sftp.SFTPPermissionDenied and other remote filesystem errors
+            # Only log if it's not a common "no matches" case
+            if "Permission denied" in str(e) or "SFTPPermissionDenied" in str(type(e)):
+                # Permission errors during recursive glob are expected - skip this pattern
+                continue
+            elif isinstance(e, (FileNotFoundError, OSError, IndexError, ValueError)):
+                # Expected cases - pattern matched nothing
+                continue
+            else:
+                # Unexpected error - re-raise
+                raise
 
     # Deduplicate and sort
     return sorted(set(all_files))
