@@ -19,7 +19,7 @@ from src.domain.templates import load_template, render_template
 # Default catalog template URI - can be overridden with environment variable
 DEFAULT_TEMPLATE_URI = os.getenv(
     "AUTOSUBMIT_SCAN_DEFAULT_TEMPLATE",
-    "github://DestinE-Climate-DT:autosubmit-scan-error-catalogs@test/dynamic-variables/templates/default_autosubmit.yaml",
+    "github://DestinE-Climate-DT:autosubmit-scan-error-catalogs@main/templates/default_autosubmit.yaml",
 )
 
 # ⚠️ INTERNAL FALLBACK TEMPLATE - DO NOT EDIT ⚠️
