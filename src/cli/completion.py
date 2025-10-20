@@ -22,6 +22,23 @@ __all__ = ["normalize_uri_for_fsspec", "get_fsspec_filesystem", "FsspecPathCompl
 
 
 # Global cache for filesystem connections to enable connection pooling
+# This cache stores active SSH/SFTP filesystem objects to avoid reconnecting
+# for every operation. The cache is process-local and complements SSH ControlMaster
+# which provides cross-process connection sharing.
+#
+# Connection pooling strategy:
+# 1. In-process cache (_FILESYSTEM_CACHE): Reuses filesystem objects within the same process
+# 2. SSH ControlMaster: Shares SSH connections across processes (configured in ~/.ssh/config)
+# 3. asyncssh connection pool: Manages connections within each filesystem object
+#
+# For best performance with Snakemake (which runs rules in separate processes),
+# configure SSH ControlMaster in ~/.ssh/config:
+#   Host *
+#     ControlMaster auto
+#     ControlPath ~/.ssh/control-%C
+#     ControlPersist 10m
+#
+# See docs/SSH_CONNECTION_POOLING.md for more details.
 _FILESYSTEM_CACHE = {}
 
 
@@ -39,7 +56,7 @@ def _parse_ssh_config_standalone(alias: str) -> dict[str, str | int | None]:
     return SSHConfigParser.parse_host(alias)
 
 
-def get_fsspec_filesystem(uri: str):
+def get_fsspec_filesystem(uri: str) -> fsspec.AbstractFileSystem:
     """Get fsspec filesystem for a given URI with SSH config support.
 
     This function handles:
@@ -48,16 +65,34 @@ def get_fsspec_filesystem(uri: str):
     - SSH/SFTP filesystems with automatic SSH config parsing
     - Connection pooling to reuse SSH connections
 
-    Args:
-        uri: File URI (can be rsync-style for SSH/SFTP)
+    Connection pooling details:
+    - Cached connections are tested before reuse (ls "/" probe)
+    - Dead connections are removed from cache and reconnected
+    - SSH/SFTP use asyncssh which auto-discovers keys from ~/.ssh/ and ssh-agent
+    - Cache key includes username, hostname, and port for uniqueness
 
-    Returns:
-        fsspec filesystem instance
+    Parameters
+    ----------
+    uri : str
+        File URI (can be rsync-style for SSH/SFTP like ssh://host:/path)
 
-    Examples:
-        >>> fs = get_fsspec_filesystem("ssh://mn5:/path/to/file")
-        >>> fs = get_fsspec_filesystem("s3://bucket/path")
-        >>> fs = get_fsspec_filesystem("/local/path")
+    Returns
+    -------
+    fsspec.AbstractFileSystem
+        Configured filesystem instance for the URI protocol
+
+    Examples
+    --------
+    >>> fs = get_fsspec_filesystem("ssh://mn5:/path/to/file")
+    >>> fs = get_fsspec_filesystem("s3://bucket/path")
+    >>> fs = get_fsspec_filesystem("/local/path")
+
+    Notes
+    -----
+    This function uses a module-level cache (_FILESYSTEM_CACHE) to avoid
+    creating new SSH connections for every filesystem operation. The cache
+    is process-local; for cross-process connection sharing, configure SSH
+    ControlMaster in ~/.ssh/config.
     """
     # Normalize rsync-style URIs
     normalized_uri = normalize_uri_for_fsspec(uri)
@@ -129,7 +164,7 @@ class FsspecPathCompleter(Completer):
         def isdir(self, path):
             return False
 
-    def __init__(self, only_directories: bool = False, expanduser: bool = True):
+    def __init__(self, only_directories: bool = False, expanduser: bool = True) -> None:
         """Initialize completer for fsspec URIs.
 
         Args:

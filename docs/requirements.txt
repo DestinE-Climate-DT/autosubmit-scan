@@ -1,0 +1,38 @@
+# Documentation dependencies for autosubmit-scan
+# Used by Read the Docs and local documentation builds
+
+# Core Jupyter Book and Sphinx
+jupyter-book>=1.0.0
+sphinx>=7.0.0
+sphinx-book-theme>=1.0.0
+
+# Sphinx extensions
+sphinx-copybutton>=0.5.0
+sphinx-design>=0.5.0
+sphinx-togglebutton>=0.3.0
+sphinxcontrib-mermaid>=0.9.2
+myst-nb>=1.0.0
+myst-parser>=2.0.0
+
+# Napoleon for NumPy/Google docstrings (included in Sphinx)
+# sphinx.ext.napoleon
+
+# Type hint support
+sphinx-autodoc-typehints>=1.23.0
+
+# API documentation
+sphinx-autosummary-accessors>=2023.4.0
+
+# Additional utilities
+linkify-it-py>=2.0.0
+
+# Notebook execution
+nbclient>=0.8.0
+ipykernel>=6.25.0
+ipython>=8.15.0
+
+# For better rendering
+pydata-sphinx-theme>=0.14.0
+
+# For testing code examples
+pytest>=7.4.0

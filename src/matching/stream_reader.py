@@ -25,7 +25,7 @@ class FileStream:
     - Context manager support
     """
 
-    def __init__(self, file_handle, uri: str, strip_newlines: bool = False):
+    def __init__(self, file_handle, uri: str, strip_newlines: bool = False) -> None:
         """Initialize FileStream.
 
         Args:
@@ -46,7 +46,7 @@ class FileStream:
         self.close()
         return False
 
-    def close(self):
+    def close(self) -> None:
         """Close the file handle."""
         if self.file_handle:
             try:

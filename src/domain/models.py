@@ -28,7 +28,17 @@ from src.domain.validation import (
 
 
 class PatternType(str, Enum):
-    """Type of pattern matcher."""
+    """Type of pattern matcher.
+
+    Attributes
+    ----------
+    LITERAL : str
+        Exact string matching (case-sensitive substring search)
+    REGEX : str
+        Regular expression pattern matching with optional flags
+    CALLABLE : str
+        Custom Python function matching (module:function format)
+    """
 
     LITERAL = "literal"
     REGEX = "regex"
@@ -36,7 +46,27 @@ class PatternType(str, Enum):
 
 
 class ConditionType(str, Enum):
-    """Type of condition for railway pattern."""
+    """Type of condition for railway pattern.
+
+    Railway pattern enables conditional error chaining based on match context.
+
+    Attributes
+    ----------
+    ALWAYS : str
+        Condition always evaluates to True
+    AND : str
+        Logical AND - all nested conditions must be True
+    OR : str
+        Logical OR - at least one nested condition must be True
+    CUSTOM : str
+        Custom Python function (module:function) returning bool
+    FIELD_EQUALS : str
+        Field value equals specified value (supports dot notation)
+    FIELD_CONTAINS : str
+        Specified value is contained in field (substring or membership test)
+    FIELD_REGEX : str
+        Regular expression matches field value
+    """
 
     ALWAYS = "always"
     AND = "and"
@@ -48,12 +78,40 @@ class ConditionType(str, Enum):
 
 
 class PatternMatcher(BaseModel):
-    """Pattern matcher configuration.
+    """Pattern matcher configuration for error detection.
 
     Supports three types of patterns:
-    - literal: Exact string match
-    - regex: Regular expression match
+    - literal: Exact string match (case-sensitive substring)
+    - regex: Regular expression match with optional flags
     - callable: Custom function (module:function format)
+
+    Attributes
+    ----------
+    type : PatternType
+        Type of pattern matcher (LITERAL, REGEX, or CALLABLE)
+    pattern : str
+        Pattern string (literal text, regex, or callable reference like 'module:function')
+    flags : list[str] | None
+        Regex flags for REGEX type: IGNORECASE, MULTILINE, DOTALL, VERBOSE, ASCII, LOCALE, UNICODE
+        Also supports short forms: I, M, S, X, A, L, U
+
+    Examples
+    --------
+    >>> # Literal pattern
+    >>> pm = PatternMatcher(type=PatternType.LITERAL, pattern="ERROR")
+
+    >>> # Regex pattern with flags
+    >>> pm = PatternMatcher(
+    ...     type=PatternType.REGEX,
+    ...     pattern=r"ERROR|CRITICAL|FATAL",
+    ...     flags=["IGNORECASE"]
+    ... )
+
+    >>> # Custom callable
+    >>> pm = PatternMatcher(
+    ...     type=PatternType.CALLABLE,
+    ...     pattern="mymodule:check_error"
+    ... )
     """
 
     model_config = {"validate_assignment": True}
@@ -65,7 +123,25 @@ class PatternMatcher(BaseModel):
     @field_validator("pattern")
     @classmethod
     def validate_pattern(cls, v: str, info) -> str:
-        """Validate pattern based on type."""
+        """Validate pattern based on type.
+
+        Parameters
+        ----------
+        v : str
+            Pattern string to validate
+        info : ValidationInfo
+            Pydantic validation context containing other field values
+
+        Returns
+        -------
+        str
+            Validated pattern string
+
+        Raises
+        ------
+        ValueError
+            If pattern is empty or callable format is invalid
+        """
         # Get the type from the values being validated
         pattern_type = info.data.get("type")
 
@@ -81,10 +157,52 @@ class PatternMatcher(BaseModel):
 class ConditionSpec(BaseModel):
     """Condition specification for railway pattern.
 
+    Railway pattern uses conditions to determine which errors to check next
+    based on properties of the current error match.
+
     Supports:
     - Simple conditions: ALWAYS, CUSTOM
     - Logical operators: AND, OR (with nested conditions)
     - Field operations: FIELD_EQUALS, FIELD_CONTAINS, FIELD_REGEX
+
+    Field access supports dot notation (e.g., 'metadata.hostname') and
+    array indexing (e.g., 'context_before[0]').
+
+    Attributes
+    ----------
+    type : ConditionType
+        Type of condition to evaluate
+    conditions : list[ConditionSpec] | None
+        Nested conditions for AND/OR logical operators
+    callable : str | None
+        Callable reference for CUSTOM type in 'module:function' format
+    field : str | None
+        Field name for FIELD_* operations, supports dot notation and indexing
+    operator : str | None
+        Operator for FIELD_* operations (currently unused, reserved for future)
+    value : Any | None
+        Value to compare against for FIELD_* operations
+
+    Examples
+    --------
+    >>> # Always trigger next error
+    >>> cond = ConditionSpec(type=ConditionType.ALWAYS)
+
+    >>> # Field equals check
+    >>> cond = ConditionSpec(
+    ...     type=ConditionType.FIELD_EQUALS,
+    ...     field="metadata.severity",
+    ...     value="critical"
+    ... )
+
+    >>> # AND condition with nested checks
+    >>> cond = ConditionSpec(
+    ...     type=ConditionType.AND,
+    ...     conditions=[
+    ...         ConditionSpec(type=ConditionType.FIELD_EQUALS, field="line_number", value=42),
+    ...         ConditionSpec(type=ConditionType.FIELD_CONTAINS, field="matched_text", value="ERROR")
+    ...     ]
+    ... )
     """
 
     model_config = {"validate_assignment": True}
@@ -99,14 +217,41 @@ class ConditionSpec(BaseModel):
     @field_validator("callable")
     @classmethod
     def validate_callable(cls, v: str | None) -> str | None:
-        """Validate callable string format."""
+        """Validate callable string format.
+
+        Parameters
+        ----------
+        v : str | None
+            Callable string in 'module:function' format
+
+        Returns
+        -------
+        str | None
+            Validated callable string
+
+        Raises
+        ------
+        ValueError
+            If callable format is invalid (must be 'module:function')
+        """
         if v is not None:
             return validate_callable_string(v)
         return v
 
     @model_validator(mode="after")
     def validate_condition_requirements(self) -> "ConditionSpec":
-        """Validate that required fields are present based on condition type."""
+        """Validate that required fields are present based on condition type.
+
+        Returns
+        -------
+        ConditionSpec
+            Self after validation
+
+        Raises
+        ------
+        ValueError
+            If required fields for the condition type are missing
+        """
         if self.type in (ConditionType.AND, ConditionType.OR):
             if not self.conditions:
                 raise ValueError(f"{self.type.value} condition requires 'conditions' list")
@@ -131,7 +276,34 @@ class ConditionSpec(BaseModel):
 class ErrorCondition(BaseModel):
     """Error condition for railway pattern.
 
-    Links to the next error to check when a condition is met.
+    Links to the next error to check when a condition is met. This enables
+    conditional error chaining where follow-up checks depend on the content
+    or context of the initial error match.
+
+    Attributes
+    ----------
+    error_id : str
+        ID of the next error to check if condition is satisfied
+    when : ConditionSpec
+        Condition specification that determines whether to trigger next error
+
+    Examples
+    --------
+    >>> # Always check for memory leak after OOM error
+    >>> ec = ErrorCondition(
+    ...     error_id="memory_leak_check",
+    ...     when=ConditionSpec(type=ConditionType.ALWAYS)
+    ... )
+
+    >>> # Check Python traceback only if error text contains 'Traceback'
+    >>> ec = ErrorCondition(
+    ...     error_id="python_traceback",
+    ...     when=ConditionSpec(
+    ...         type=ConditionType.FIELD_CONTAINS,
+    ...         field="matched_text",
+    ...         value="Traceback"
+    ...     )
+    ... )
     """
 
     model_config = {"validate_assignment": True}

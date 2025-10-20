@@ -5,6 +5,7 @@ Provides centralized GitHub URI parsing and filesystem access.
 
 import os
 from typing import Tuple
+from collections.abc import Callable
 
 import fsspec
 from loguru import logger

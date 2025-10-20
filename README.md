@@ -4,7 +4,11 @@
   <img src="assets/title-svg.svg" alt="DestinE Earth" width="400"/>
 </p>
 
-A comprehensive remote error monitoring and scanning system for analyzing log files across distributed systems. Built with pattern matching, workflow orchestration (Snakemake), and the Railway pattern for conditional error chaining.
+A comprehensive remote error monitoring and scanning system for analyzing log files across distributed systems. Built with pattern matching, smart workflow management, and automatic error flowcharts for intelligent error tracking.
+
+**What does this tool do?** It automatically scans your log files (local or remote) to find errors, and can intelligently check for related errors based on what it finds. Think of it as a smart search that follows error chains for you.
+
+**Key concept - [Railway Pattern](docs/GLOSSARY.md#railway-pattern):** Automatic error flowcharts. When the tool finds one error, it can automatically check for related errors based on conditions you define. Example: Find "Out of Memory" → Automatically check which process failed.
 
 ---
 
@@ -55,19 +59,122 @@ A comprehensive remote error monitoring and scanning system for analyzing log fi
 
 ---
 
+## What is the Railway Pattern?
+
+The Railway Pattern is like an automatic troubleshooting flowchart for your log files.
+
+**Example: Medical Diagnosis Flowchart**
+```
+Find symptom: "Fever"
+   → Automatically check: "Is temperature > 38C?"
+   → If yes, automatically check: "Any other symptoms?"
+   → If headache found, automatically check: "Recent travel?"
+```
+
+**How it works for log files:**
+```
+Find error: "Out of Memory"
+   → Automatically check: "Which process failed?"
+   → If Python process, automatically check: "Memory leak pattern?"
+   → If leak found, create ticket
+```
+
+**Without Railway Pattern:** You manually search for each error, one at a time
+**With Railway Pattern:** The tool follows your flowchart automatically, finding error chains in one scan
+
+This saves hours of manual log searching and ensures you never miss related errors.
+
+**Visual diagram:**
+
+```mermaid
+flowchart LR
+    A[Find: Out of Memory] --> B{Check: Which process?}
+    B -->|Python| C[Check: Memory leak pattern?]
+    B -->|Other| D[Log and continue]
+    C -->|Leak found| E[Create alert ticket]
+    C -->|No leak| D
+
+    style A fill:#ff6b6b
+    style E fill:#51cf66
+    style B fill:#ffd43b
+    style C fill:#ffd43b
+```
+
+**Comparison:**
+
+```mermaid
+flowchart TD
+    subgraph "Without Railway Pattern"
+    M1[Manual search for Error A] --> M2[Find Error A]
+    M2 --> M3[Manually search for Error B]
+    M3 --> M4[Find Error B]
+    M4 --> M5[Manually search for Error C]
+    M5 --> M6[Find Error C]
+    end
+
+    subgraph "With Railway Pattern"
+    A1[Scan once] --> A2[Find Error A]
+    A2 --> A3[Auto-check Error B]
+    A3 --> A4[Auto-check Error C]
+    A4 --> A5[All results ready]
+    end
+
+    style M1 fill:#ff6b6b
+    style M3 fill:#ff6b6b
+    style M5 fill:#ff6b6b
+    style A1 fill:#51cf66
+    style A5 fill:#51cf66
+```
+
+---
+
 ## Features
 
-- **Pattern Matching**: Support for literal, regex, and callable patterns
-- **Remote File Access**: Scan files via S3, SFTP, FTP, and local filesystems
-- **SSH Connection Pooling**: Efficient connection management for remote scans (SSH ControlMaster integration)
-- **Railway Pattern**: Conditional error chaining based on match context
-- **Workflow Orchestration**: Powered by Snakemake for scalable, parallel execution
+- **[Pattern Matching](docs/GLOSSARY.md#pattern-matching)**: Three ways to find errors - exact text (literal), flexible patterns (regex), or custom logic (Python functions)
+- **[Remote File Access](docs/GLOSSARY.md#remote-file-access)**: Scan files on any system - local files, SSH/SFTP servers, or cloud storage (S3)
+- **[SSH Connection Reuse](docs/GLOSSARY.md#ssh-connection-reuse)**: Fast connection sharing for remote scans (critical for HPC systems - prevents timeouts)
+- **[Railway Pattern](docs/GLOSSARY.md#railway-pattern)**: Automatic error flowcharts that follow error chains based on conditions you define
+- **[Smart Caching](docs/GLOSSARY.md#snakemake)**: Only re-scans files that changed since last time (powered by Snakemake working behind the scenes)
 
 ## Bonus Features (WIP and not critical)
 
-- **Interactive TUI**: Browse results with a terminal user interface (Textual)
-- **Report Generation**: Export to Markdown, HTML, or plain text via Jinja2 Templates
-- **JSON-LD Format**: Structured, semantic error reports
+- **[Interactive Results Viewer](docs/GLOSSARY.md#interactive-results-viewer)**: Browse results with keyboard navigation in your terminal
+- **Report Export**: Export to Markdown, HTML, or plain text formats
+- **[Scan Reports](docs/GLOSSARY.md#scan-report)**: Structured error reports (JSON-LD format)
+
+---
+
+## Prerequisites
+
+Before using autosubmit-scan, you should have:
+
+**Required:**
+- Basic command line skills (navigating directories, running commands)
+- Can edit text files
+- Have log files you want to scan (local or remote)
+- Python 3.12 or higher
+
+**Helpful but NOT required** (the tool explains as you go):
+- Basic [YAML](docs/GLOSSARY.md#yaml) syntax - [5-minute tutorial](https://learnxinyminutes.com/docs/yaml/)
+- [Regular expressions](docs/GLOSSARY.md#regex) (regex) basics - only needed for advanced pattern matching
+- SSH configuration - only needed for remote file scanning
+- Understanding of [glob patterns](docs/GLOSSARY.md#glob-patterns) (`*.log`, `**/*.log`) for matching multiple files
+
+**You DON'T need to know:**
+- Snakemake (works behind the scenes automatically)
+- Pydantic (internal implementation detail)
+- Design patterns (for developers only)
+- JSON-LD (results can be viewed without understanding the format)
+
+**What this guide will teach you:**
+- How to create [error catalogs](docs/GLOSSARY.md#catalog) (configuration files)
+- How to scan local and remote [log files](docs/GLOSSARY.md#log-file)
+- How to set up automatic error chains ([Railway Pattern](docs/GLOSSARY.md#railway-pattern))
+- How to view and export [results](docs/GLOSSARY.md#scan-report)
+
+**Estimated time to first scan:** 30 minutes
+
+---
 
 ## Installation
 
@@ -92,6 +199,41 @@ pip install -e .
 as-scan --help
 ```
 
+### IMPORTANT: SSH Setup (Required for Remote Scans)
+
+If you plan to scan files over SSH/SFTP, you MUST configure [SSH connection reuse](docs/GLOSSARY.md#ssh-connection-reuse):
+
+**WARNING:** Without this setup, remote scans will fail with timeout errors after 2 minutes!
+
+**Quick setup** (one-time, takes 2 minutes):
+
+1. Add to your `~/.ssh/config` file:
+   ```ssh-config
+   Host *
+       ControlMaster auto
+       ControlPath ~/.ssh/control-%C
+       ControlPersist 10m
+   ```
+
+2. Test it works:
+   ```bash
+   as-scan check-ssh your-hostname
+   ```
+
+**What this does:**
+- Reuses SSH connections instead of creating new ones for each file
+- Makes scans 10-40x faster
+- Prevents timeout errors
+- Works automatically with all SSH/SFTP file access
+
+**Analogy:** Like carpooling vs everyone driving separately - connection reuse is more efficient and faster.
+
+**Detailed guide:** See [docs/SSH_CONNECTION_POOLING.md](docs/SSH_CONNECTION_POOLING.md) for troubleshooting and advanced configuration.
+
+**Skip this if:** You're only scanning local files (no SSH/SFTP).
+
+---
+
 ## Quick Start
 
 ### 1. Create a Sample Catalog
@@ -100,7 +242,7 @@ as-scan --help
 as-scan init --output my_catalog.yaml
 ```
 
-This creates a sample catalog with example error definitions.
+This creates a sample [catalog](docs/GLOSSARY.md#catalog) with example error definitions.
 
 ### 2. Validate Your Catalog
 
@@ -108,7 +250,7 @@ This creates a sample catalog with example error definitions.
 as-scan validate my_catalog.yaml
 ```
 
-Ensures your catalog is syntactically correct and follows the schema.
+Ensures your [catalog](docs/GLOSSARY.md#catalog) is syntactically correct and follows the schema.
 
 ### 3. Run a Scan
 
@@ -117,10 +259,10 @@ as-scan scan --catalog my_catalog.yaml --output ./results --cores 4
 ```
 
 This will:
-- Discover files matching your patterns
+- Discover files matching your [patterns](docs/GLOSSARY.md#glob-patterns)
 - Scan for errors in parallel
-- Apply railway pattern conditions
-- Generate a JSON-LD report
+- Apply [railway pattern](docs/GLOSSARY.md#railway-pattern) [conditions](docs/GLOSSARY.md#condition)
+- Generate a [scan report](docs/GLOSSARY.md#scan-report)
 
 ### 4. View Results Interactively
 
@@ -128,7 +270,7 @@ This will:
 as-scan view ./results/report.json
 ```
 
-Launches a TUI for browsing errors by type and file.
+Launches an [interactive results viewer](docs/GLOSSARY.md#interactive-results-viewer) for browsing errors by type and file.
 
 ### 5. Export to Markdown
 
@@ -197,7 +339,7 @@ Options:
 
 ## Error Catalog Format
 
-An error catalog defines patterns to search for and how to handle them:
+An [error catalog](docs/GLOSSARY.md#catalog) is a [YAML](docs/GLOSSARY.md#yaml) configuration file that tells the tool what errors to search for and how to handle them:
 
 ```yaml
 version: "1.0.0"
@@ -232,13 +374,15 @@ errors:
 
 ### Pattern Types
 
-- **literal**: Exact string matching
-- **regex**: Regular expression with optional flags
-- **callable**: Custom Python function
+See [Pattern Matching](docs/GLOSSARY.md#pattern-matching) in the glossary for details.
+
+- **[literal](docs/GLOSSARY.md#literal-pattern)**: Exact string matching
+- **[regex](docs/GLOSSARY.md#regex-pattern)**: Regular expression with optional flags
+- **[callable](docs/GLOSSARY.md#callable-pattern)**: Custom Python function
 
 ### File URIs
 
-Supported URI schemes with **rsync-style notation** for SSH/SFTP:
+Supported [URI](docs/GLOSSARY.md#uri) schemes with **rsync-style notation** for SSH/SFTP:
 - `/path/to/file` - Local filesystem
 - `ssh://hostname:/path/**/*.log` - SSH (rsync-style with colon)
 - `sftp://hostname:/path/**/*.log` - SFTP (rsync-style with colon)
@@ -258,9 +402,11 @@ files:
   - "/local/path/to/logs/**/*.log"
 ```
 
+See [Glob Patterns](docs/GLOSSARY.md#glob-patterns) for file matching details.
+
 ### Railway Pattern
 
-Chain errors conditionally using the `next_errors` field:
+Chain errors conditionally using the `next_errors` field. See [Railway Pattern](docs/GLOSSARY.md#railway-pattern) and [Condition](docs/GLOSSARY.md#condition) in the glossary for details.
 
 ```yaml
 next_errors:
@@ -276,9 +422,86 @@ next_errors:
           value: "urgent"
 ```
 
+## How It Works (Simple Workflow)
+
+**What happens when you run a scan:**
+
+```mermaid
+flowchart TD
+    Start([You run: as-scan scan]) --> Read[Tool reads your catalog file]
+    Read --> Discover[Tool finds all matching files]
+    Discover --> Scan[Tool scans files for errors]
+    Scan --> Railway{Railway Pattern<br/>chains?}
+    Railway -->|Yes| Chain[Auto-check related errors]
+    Railway -->|No| Save
+    Chain --> Save[Tool saves results]
+    Save --> View([You view results])
+
+    style Start fill:#4dabf7
+    style View fill:#51cf66
+    style Railway fill:#ffd43b
+    style Scan fill:#ff6b6b
+```
+
+**More details:**
+
+```mermaid
+flowchart LR
+    subgraph "1. Setup"
+    C1[Create catalog.yaml] --> C2[Define error patterns]
+    C2 --> C3[Specify file locations]
+    end
+
+    subgraph "2. Scan"
+    S1[Run as-scan scan] --> S2[Discover files]
+    S2 --> S3[Match patterns]
+    S3 --> S4[Apply railway chains]
+    end
+
+    subgraph "3. Results"
+    R1[Generate report.json] --> R2[View in TUI]
+    R1 --> R3[Export to Markdown]
+    R1 --> R4[Export to HTML]
+    end
+
+    C3 --> S1
+    S4 --> R1
+
+    style C1 fill:#e7f5ff
+    style S1 fill:#fff3bf
+    style R1 fill:#d3f9d8
+```
+
+**File pattern matching visualization:**
+
+```mermaid
+graph TD
+    subgraph "Your Project"
+    P[project/] --> L[logs/]
+    P --> D[data/]
+    L --> R1[run1.log]
+    L --> R2[run2.log]
+    D --> OUT[output.csv]
+    P --> SUM[summary.log]
+    end
+
+    Pattern["Pattern: **/*.log"] -.Match.-> R1
+    Pattern -.Match.-> R2
+    Pattern -.Match.-> SUM
+    Pattern -.No match.-> OUT
+
+    style Pattern fill:#ffd43b
+    style R1 fill:#51cf66
+    style R2 fill:#51cf66
+    style SUM fill:#51cf66
+    style OUT fill:#ced4da
+```
+
+---
+
 ## Architecture
 
-The system follows a modular architecture:
+The system follows a modular architecture (for developers):
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -334,14 +557,34 @@ pixi run coverage-report
 
 ### Basic Local File Scanning
 
+**Step 1: Create sample log file** (so the example actually works!)
+
 ```bash
-# Create catalog for local logs
-cat > local_errors.yaml << EOF
+# Create a directory for test logs
+mkdir -p ~/test-logs
+
+# Create a sample log file with some errors
+cat > ~/test-logs/application.log << 'LOG'
+2024-01-15 10:00:00 INFO Application started
+2024-01-15 10:01:23 INFO Processing data batch 1
+2024-01-15 10:02:45 ERROR Failed to connect to database
+2024-01-15 10:02:46 INFO Retrying connection...
+2024-01-15 10:03:10 CRITICAL Database connection timeout
+2024-01-15 10:03:11 ERROR Unable to process batch 1
+2024-01-15 10:04:00 INFO Application shutting down
+LOG
+```
+
+**Step 2: Create error catalog**
+
+```bash
+# Create catalog that will scan the file we just created
+cat > local_errors.yaml << 'EOF'
 version: "1.0.0"
 schema_version: "1.0.0"
 metadata:
-  name: "Local Errors"
-  description: "Scan local log files"
+  name: "Local Errors Example"
+  description: "Scan local log files for errors"
   author: "Me"
   created: "2024-01-01T00:00:00Z"
   updated: "2024-01-01T00:00:00Z"
@@ -354,20 +597,41 @@ errors:
       pattern: "ERROR|CRITICAL|FATAL"
       flags: ["IGNORECASE"]
     files:
-      - "/var/log/**/*.log"
-    meaning: "Critical error detected"
-    suggestion: "Review logs for details"
-    context_lines: 5
+      # Works on Mac, Linux, and Windows (with Git Bash)
+      - "~/test-logs/**/*.log"
+    meaning: "Critical error detected in application logs"
+    suggestion: "Review logs for details and check database connectivity"
+    context_lines: 2
     next_errors: []
     metadata:
       severity: "high"
 EOF
+```
 
-# Scan
+**Step 3: Run scan**
+
+```bash
 as-scan scan --catalog local_errors.yaml --output ./results
+```
 
-# View
+**Expected output:**
+```
+[INFO] Scanning files...
+[INFO] Found 3 matches for error_keyword
+[INFO] Results saved to ./results/report.json
+```
+
+**Step 4: View results**
+
+```bash
 as-scan view ./results/report.json
+```
+
+**What you should see:** 3 errors found (2 ERROR lines, 1 CRITICAL line) with 2 lines of context before/after each.
+
+**Clean up when done:**
+```bash
+rm -rf ~/test-logs results local_errors.yaml
 ```
 
 ### S3 Bucket Scanning

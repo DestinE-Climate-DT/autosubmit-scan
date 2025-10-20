@@ -1,0 +1,97 @@
+version: "1.0.0"
+schema_version: "1.0.0"
+
+metadata:
+  name: "Climate Model Error Catalog"
+  description: "Sample catalog for scanning climate model and HPC log files"
+  author: "autosubmit-scan documentation team"
+  created: "2024-10-20T15:00:00Z"
+  updated: "2024-10-20T15:00:00Z"
+
+errors:
+  # Error 1: Out of Memory (OOM) errors from SLURM
+  out_of_memory:
+    id: "out_of_memory"
+    pattern:
+      type: "literal"
+      pattern: "oom-kill"
+    files:
+      - "*.log"
+    meaning: "Job was killed by SLURM because it exceeded the allocated memory"
+    suggestion: "Increase memory allocation in job script (e.g., #SBATCH --mem=384GB) or optimize memory usage in the model"
+    context_lines: 5
+    next_errors: []
+    metadata:
+      severity: "critical"
+      category: "resource"
+      typical_fix: "increase_memory"
+
+  # Error 2: Time limit exceeded
+  timeout_error:
+    id: "timeout_error"
+    pattern:
+      type: "literal"
+      pattern: "TIME LIMIT"
+    files:
+      - "*.log"
+    meaning: "Job exceeded the requested wall-clock time and was cancelled by SLURM"
+    suggestion: "Increase time limit in job script (e.g., #SBATCH --time=24:00:00), optimize code performance, or implement checkpointing to restart from saved state"
+    context_lines: 5
+    next_errors: []
+    metadata:
+      severity: "high"
+      category: "resource"
+      typical_fix: "increase_time_or_checkpoint"
+
+  # Error 3: Python errors with tracebacks
+  python_traceback:
+    id: "python_traceback"
+    pattern:
+      type: "literal"
+      pattern: "Traceback (most recent call last)"
+    files:
+      - "*.log"
+    meaning: "Python script crashed with an unhandled exception"
+    suggestion: "Review the traceback to identify the line causing the error, check input data types and values, and add error handling"
+    context_lines: 8
+    next_errors: []
+    metadata:
+      severity: "medium"
+      category: "code"
+      typical_fix: "debug_python_code"
+
+  # Error 4: MPI communication failures
+  mpi_communication_error:
+    id: "mpi_communication_error"
+    pattern:
+      type: "regex"
+      pattern: "MPI_ERR|MPI communication error"
+      flags: ["IGNORECASE"]
+    files:
+      - "*.log"
+    meaning: "MPI (Message Passing Interface) communication failed between parallel processes"
+    suggestion: "Check network connectivity between nodes, verify MPI configuration, check for node hardware failures, or reduce message sizes"
+    context_lines: 7
+    next_errors: []
+    metadata:
+      severity: "critical"
+      category: "parallel"
+      typical_fix: "check_network_and_hardware"
+
+  # Error 5: Job cancelled/failed
+  job_failure:
+    id: "job_failure"
+    pattern:
+      type: "regex"
+      pattern: "Job.*failed|CANCELLED|Exit code: [1-9]"
+      flags: ["IGNORECASE"]
+    files:
+      - "*.log"
+    meaning: "SLURM job failed or was cancelled"
+    suggestion: "Check the log file for specific error messages above this line to determine the root cause"
+    context_lines: 3
+    next_errors: []
+    metadata:
+      severity: "high"
+      category: "general"
+      typical_fix: "investigate_root_cause"

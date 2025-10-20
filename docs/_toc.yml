@@ -1,0 +1,118 @@
+# Table of contents for Jupyter Book
+# Learn more at https://jupyterbook.org/customize/toc.html
+# Following the Diátaxis framework for optimal documentation UX
+
+format: jb-book
+root: index
+title: autosubmit-scan Documentation
+
+parts:
+  - caption: Getting Started
+    chapters:
+      - file: getting-started/quickstart
+        title: Quickstart Guide
+      - file: getting-started/installation
+        title: Installation
+      - file: getting-started/concepts
+        title: Basic Concepts
+
+  - caption: Tutorials
+    numbered: true
+    chapters:
+      - file: tutorials/01_getting_started
+        title: "Your First Scan"
+      - file: tutorials/02_pattern_matching
+        title: "Pattern Matching Basics"
+      - file: tutorials/03_remote_files
+        title: "Scanning Remote Files"
+      - file: tutorials/04_railway_pattern
+        title: "Using the Railway Pattern"
+      - file: tutorials/05_ssh_pooling
+        title: "SSH Connection Pooling"
+      - file: tutorials/06_custom_patterns
+        title: "Creating Custom Patterns"
+      - file: tutorials/07_export_reports
+        title: "Exporting Reports"
+
+  - caption: How-To Guides
+    chapters:
+      - file: USER_GUIDE
+        title: Complete User Guide
+      - file: how-to/catalog-syntax
+        title: Catalog Syntax Reference
+      - file: how-to/pattern-matching
+        title: Pattern Matching
+      - file: how-to/railway-conditions
+        title: Railway Pattern Conditions
+      - file: SSH_CONNECTION_POOLING
+        title: SSH Connection Pooling
+      - file: how-to/remote-protocols
+        title: Remote File Protocols
+      - file: how-to/custom-templates
+        title: Custom Export Templates
+      - file: how-to/performance-tuning
+        title: Performance Optimization
+
+  - caption: Reference
+    chapters:
+      - file: reference/cli-commands
+        title: CLI Command Reference
+      - file: reference/catalog-schema
+        title: Catalog Schema Specification
+      - file: reference/condition-types
+        title: Condition Types
+      - file: reference/template-variables
+        title: Template Variables
+      - file: reference/exit-codes
+        title: Exit Codes & Error Messages
+      - file: api/index
+        title: "API Overview"
+      - file: api/cli
+        title: "CLI Module"
+      - file: api/domain
+        title: "Domain Module"
+      - file: api/matching
+        title: "Matching Module"
+      - file: api/orchestration
+        title: "Orchestration Module"
+      - file: api/reporting
+        title: "Reporting Module"
+
+  - caption: Explanation
+    chapters:
+      - file: ARCHITECTURE
+        title: System Architecture
+      - file: explanation/railway-pattern
+        title: Railway Pattern Deep Dive
+      - file: explanation/workflow-engine
+        title: Snakemake Workflow Engine
+      - file: explanation/design-patterns
+        title: Design Patterns
+      - file: explanation/connection-pooling
+        title: Connection Pooling Architecture
+      - file: explanation/security-model
+        title: Security Model
+
+  - caption: Development
+    chapters:
+      - file: CONTRIBUTING_AUTHORS
+        title: Contributing & Authors
+      - file: development/testing
+        title: "Testing Strategy"
+      - file: development/code-style
+        title: "Code Style Guide"
+      - file: development/release-process
+        title: "Release Process"
+
+  - caption: Additional Resources
+    chapters:
+      - file: ../CHANGELOG
+        title: "Changelog"
+      - file: ../SECURITY
+        title: "Security Policy"
+      - file: faq
+        title: "FAQ"
+      - file: troubleshooting
+        title: "Troubleshooting"
+      - file: glossary
+        title: "Glossary"

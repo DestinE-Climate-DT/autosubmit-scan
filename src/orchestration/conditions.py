@@ -25,27 +25,44 @@ from src.matching.callable_loader import load_callable
 def get_field_value(obj: Any, path: str) -> Any | None:
     """Get field value from object using dot notation and array indexing.
 
+    This function parses a path string into a series of attribute accesses
+    and array indices, then navigates through the object to extract the value.
+    It handles both Pydantic models (attribute access) and dictionaries (key access).
+
     Supports:
     - Simple fields: "line_number"
     - Dot notation: "metadata.hostname"
     - Array indexing: "context_before[0]", "context_after[-1]"
     - Combined: "metadata.items[0].name"
 
-    Args:
-        obj: The object to extract field from
-        path: The field path (e.g., "metadata.hostname" or "context_before[0]")
+    Path parsing algorithm:
+    - Splits on '.' for attribute access
+    - Splits on '[...]' for array indexing
+    - Handles nested combinations of both
 
-    Returns:
+    Parameters
+    ----------
+    obj : Any
+        The object to extract field from (typically ErrorMatch)
+    path : str
+        The field path (e.g., "metadata.hostname" or "context_before[0]")
+
+    Returns
+    -------
+    Any | None
         The field value, or None if field doesn't exist or access fails
 
-    Examples:
-        >>> match = ErrorMatch(...)
-        >>> get_field_value(match, "line_number")
-        42
-        >>> get_field_value(match, "metadata.hostname")
-        "compute-node-01"
-        >>> get_field_value(match, "context_before[0]")
-        "Starting process..."
+    Examples
+    --------
+    >>> match = ErrorMatch(...)
+    >>> get_field_value(match, "line_number")
+    42
+    >>> get_field_value(match, "metadata.hostname")
+    "compute-node-01"
+    >>> get_field_value(match, "context_before[0]")
+    "Starting process..."
+    >>> get_field_value(match, "context_after[-1]")
+    "Process terminated"
     """
     if not path:
         return None
@@ -56,42 +73,46 @@ def get_field_value(obj: Any, path: str) -> Any | None:
     i = 0
 
     # Parse path into parts (handles both dot notation and array indexing)
+    # Example: "metadata.items[0].name" -> [("attr", "metadata"), ("attr", "items"), ("index", 0), ("attr", "name")]
     while i < len(path):
         char = path[i]
 
         if char == ".":
+            # Dot notation separator - save current part and start new one
             if current_part:
                 parts.append(("attr", current_part))
                 current_part = ""
         elif char == "[":
-            # Found array index
+            # Found array index - save current part and extract index
             if current_part:
                 parts.append(("attr", current_part))
                 current_part = ""
 
-            # Find closing bracket
+            # Find closing bracket and extract index value
             j = i + 1
             while j < len(path) and path[j] != "]":
                 j += 1
 
             if j < len(path):
+                # Extract and parse the index (supports negative indices like [-1])
                 index_str = path[i + 1 : j]
                 try:
                     index = int(index_str)
                     parts.append(("index", index))
                 except ValueError:
-                    # Invalid index, return None
+                    # Invalid index (not an integer), return None
                     return None
                 i = j  # Skip to closing bracket
             else:
-                # No closing bracket found
+                # No closing bracket found - malformed path
                 return None
         else:
+            # Regular character - accumulate into current part
             current_part += char
 
         i += 1
 
-    # Add final part if any
+    # Add final part if any (handles paths not ending with . or ])
     if current_part:
         parts.append(("attr", current_part))
 

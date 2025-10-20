@@ -1,0 +1,242 @@
+# Jupyter Book configuration for autosubmit-scan
+# See https://jupyterbook.org/customize/config.html for all available options
+
+# Book settings
+title: "autosubmit-scan Documentation"
+author: "Paul Gierz & Contributors"
+copyright: "2024, DestinE Climate Digital Twin"
+logo: "../assets/DestinE_logo_line_2_POS.png"
+
+# Execution settings
+execute:
+  execute_notebooks: "off"  # Don't execute notebooks during build (they should have outputs already)
+  cache: ""  # Cache notebook outputs
+  exclude_patterns:
+    - "**/README.md"
+    - "**/CHANGELOG.md"
+  timeout: 180  # Execution timeout in seconds
+  allow_errors: false  # Don't allow errors during notebook execution
+
+# HTML output configuration
+html:
+  favicon: "../assets/favicon.ico"
+  use_edit_page_button: true
+  use_repository_button: true
+  use_issues_button: true
+  use_download_button: true
+  home_page_in_navbar: true
+  baseurl: "https://autosubmit-scan.readthedocs.io/"
+  extra_footer: |
+    <div class="footer-custom">
+      <div class="footer-logos">
+        <img src="../assets/DestinE_logo_line_2_POS.png" alt="DestinE" style="height: 50px; margin: 10px auto; display: block;">
+      </div>
+      <p style="text-align: center; margin-top: 10px;">
+        Funded by the European Union - DestinE Climate Digital Twin
+      </p>
+      <p style="text-align: center; font-size: 0.9em; color: #666;">
+        <a href="https://destination-earth.eu/" target="_blank" rel="noopener">Learn more about DestinE</a>
+      </p>
+    </div>
+  google_analytics_id: ""  # Add if needed
+  comments:
+    hypothesis: false
+    utterances: false
+
+# Repository settings (for "Edit on GitHub" button)
+repository:
+  url: https://github.com/DestinE-Climate-DT/autosubmit-scan
+  path_to_book: develop/docs
+  branch: main
+
+# Launch buttons (for Binder, Colab, etc.)
+launch_buttons:
+  notebook_interface: "jupyterlab"
+  binderhub_url: ""  # Add if using Binder
+  colab_url: ""  # Add if using Google Colab
+  thebe: false
+
+# Sphinx configuration
+sphinx:
+  config:
+    # Language and encoding
+    language: en
+
+    # Add source path to sys.path for autodoc
+    sys_path:
+      - "../../src"  # Add src directory to Python path
+
+    # Autodoc configuration
+    autodoc_default_options:
+      members: true
+      member-order: "bysource"
+      special-members: "__init__"
+      undoc-members: true
+      exclude-members: "__weakref__"
+      show-inheritance: true
+      inherited-members: false
+
+    autodoc_typehints: "description"
+    autodoc_typehints_description_target: "documented"
+    autodoc_type_aliases: {}
+
+    # Napoleon extension for NumPy/Google style docstrings
+    napoleon_google_docstring: true
+    napoleon_numpy_docstring: true
+    napoleon_include_init_with_doc: true
+    napoleon_include_private_with_doc: false
+    napoleon_include_special_with_doc: true
+    napoleon_use_admonition_for_examples: true
+    napoleon_use_admonition_for_notes: true
+    napoleon_use_admonition_for_references: true
+    napoleon_use_ivar: false
+    napoleon_use_param: true
+    napoleon_use_rtype: true
+    napoleon_preprocess_types: true
+    napoleon_type_aliases: null
+    napoleon_attr_annotations: true
+
+    # Intersphinx for cross-referencing external docs
+    intersphinx_mapping:
+      python:
+        - "https://docs.python.org/3"
+        - null
+      pydantic:
+        - "https://docs.pydantic.dev/latest/"
+        - null
+      fsspec:
+        - "https://filesystem-spec.readthedocs.io/en/latest/"
+        - null
+      snakemake:
+        - "https://snakemake.readthedocs.io/en/stable/"
+        - null
+      click:
+        - "https://click.palletsprojects.com/en/8.1.x/"
+        - null
+      jinja2:
+        - "https://jinja.palletsprojects.com/en/3.1.x/"
+        - null
+
+    # Autodoc member order
+    autodoc_member_order: "groupwise"
+
+    # Type hints rendering
+    autodoc_typehints_format: "short"
+    python_use_unqualified_type_names: true
+
+    # Additional Sphinx settings
+    add_module_names: false
+    pygments_style: "sphinx"
+    todo_include_todos: false
+
+    # Custom CSS
+    html_static_path: ["_static"]
+    html_css_files:
+      - "custom.css"
+
+    # HTML theme options (MyST-NB uses pydata-sphinx-theme by default)
+    html_theme: "sphinx_book_theme"
+    html_theme_options:
+      repository_url: "https://github.com/DestinE-Climate-DT/autosubmit-scan"
+      use_repository_button: true
+      use_edit_page_button: true
+      use_issues_button: true
+      use_download_button: true
+      logo:
+        text: "autosubmit-scan"
+        image_light: "../assets/title-svg.svg"
+        image_dark: "../assets/title-svg.svg"
+      home_page_in_navbar: true
+      navigation_with_keys: true
+      show_navbar_depth: 2
+      collapse_navigation: false
+      path_to_docs: "develop/docs"
+      repository_branch: "main"
+      use_fullscreen_button: true
+      show_toc_level: 2
+      announcement: ""  # Add site-wide announcements here
+      search_bar_text: "Search documentation..."
+      primary_sidebar_end: ["indices.html", "searchbox.html"]
+      footer_start: ["copyright.html", "sphinx-version.html"]
+      footer_end: ["theme-version.html"]
+      pygment_light_style: "tango"
+      pygment_dark_style: "monokai"
+      icon_links:
+        - name: "GitHub"
+          url: "https://github.com/DestinE-Climate-DT/autosubmit-scan"
+          icon: "fab fa-github-square"
+          type: "fontawesome"
+        - name: "DestinE"
+          url: "https://destination-earth.eu/"
+          icon: "fas fa-globe"
+          type: "fontawesome"
+
+    # Math rendering
+    mathjax_path: "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
+    mathjax3_config:
+      tex:
+        macros:
+          N: "\\mathbb{N}"
+          R: "\\mathbb{R}"
+          Z: "\\mathbb{Z}"
+
+  extra_extensions:
+    - "sphinx.ext.autodoc"
+    - "sphinx.ext.autosummary"
+    - "sphinx.ext.napoleon"
+    - "sphinx.ext.viewcode"
+    - "sphinx.ext.intersphinx"
+    - "sphinx.ext.mathjax"
+    - "sphinx.ext.todo"
+    - "sphinx.ext.coverage"
+    - "sphinx.ext.githubpages"
+    - "sphinx_copybutton"
+    - "sphinx_design"
+    - "sphinx_togglebutton"
+    - "sphinxcontrib.mermaid"
+    - "myst_nb"
+
+# MyST-Markdown configuration
+parse:
+  myst_enable_extensions:
+    - "amsmath"
+    - "colon_fence"
+    - "deflist"
+    - "dollarmath"
+    - "html_admonition"
+    - "html_image"
+    - "linkify"
+    - "replacements"
+    - "smartquotes"
+    - "substitution"
+    - "tasklist"
+  myst_url_schemes:
+    - "http"
+    - "https"
+    - "ftp"
+    - "mailto"
+    - "ssh"
+    - "sftp"
+    - "s3"
+  myst_heading_anchors: 3
+
+# Bibtex for citations
+bibtex_bibfiles: []
+
+# LaTeX configuration for PDF builds
+latex:
+  latex_engine: "pdflatex"
+  latex_documents:
+    targetname: "autosubmit-scan.tex"
+
+# Only build specific files (exclude certain patterns)
+exclude_patterns:
+  - "_build"
+  - "Thumbs.db"
+  - ".DS_Store"
+  - "**.ipynb_checkpoints"
+  - "**/README.md"
+  - "../tests/**"
+  - "../scripts/**"
+  - "../examples/**"
+  - "../.github/**"

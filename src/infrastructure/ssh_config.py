@@ -15,23 +15,46 @@ class SSHConfigParser:
     def parse_host(alias: str, config_path: Path | None = None) -> Dict[str, str | int | None]:
         """Parse SSH config to get connection details for a host alias.
 
-        Args:
-            alias: SSH host alias (e.g., 'mn5', 'lumi', 'climatedt-wf')
-            config_path: Optional path to SSH config file. Defaults to ~/.ssh/config
+        Reads ~/.ssh/config and extracts connection parameters for the given
+        host alias. Falls back to sensible defaults if config doesn't exist
+        or host is not found.
 
-        Returns:
+        Parameters
+        ----------
+        alias : str
+            SSH host alias (e.g., 'mn5', 'lumi', 'climatedt-wf')
+        config_path : Path | None, optional
+            Path to SSH config file. If None, defaults to ~/.ssh/config
+
+        Returns
+        -------
+        Dict[str, str | int | None]
             Dictionary with keys:
-                - hostname: Real hostname or IP address
-                - user: Username for SSH connection
-                - port: Port number (default 22)
-                - identity_file: Path to SSH key file (if specified)
+                - hostname : str
+                    Real hostname or IP address (defaults to alias if not found)
+                - user : str
+                    Username for SSH connection (defaults to $USER)
+                - port : int
+                    Port number (defaults to 22)
+                - identity_file : str | None
+                    Path to SSH key file (None if not specified)
 
-        Examples:
-            >>> config = SSHConfigParser.parse_host('myserver')
-            >>> print(config['hostname'])
-            'myserver.example.com'
-            >>> print(config['user'])
-            'myusername'
+        Examples
+        --------
+        >>> config = SSHConfigParser.parse_host('myserver')
+        >>> print(config['hostname'])
+        'myserver.example.com'
+        >>> print(config['user'])
+        'myusername'
+        >>> print(config['port'])
+        22
+
+        Notes
+        -----
+        This method is designed to be fault-tolerant:
+        - Returns defaults if config file doesn't exist
+        - Returns defaults if host alias not found
+        - Continues parsing even if individual lines fail
         """
         if config_path is None:
             config_path = Path.home() / ".ssh" / "config"
@@ -98,16 +121,30 @@ class SSHConfigParser:
     def get_hosts(config_path: Path | None = None) -> list[str]:
         """Get list of host aliases from SSH config.
 
-        Args:
-            config_path: Optional path to SSH config file. Defaults to ~/.ssh/config
+        Extracts all Host entries from SSH config, excluding wildcards.
+        Useful for autocompletion and host discovery.
 
-        Returns:
-            List of host aliases (excluding wildcards)
+        Parameters
+        ----------
+        config_path : Path | None, optional
+            Path to SSH config file. If None, defaults to ~/.ssh/config
 
-        Examples:
-            >>> hosts = SSHConfigParser.get_hosts()
-            >>> print(hosts)
-            ['server1', 'server2', 'myhost']
+        Returns
+        -------
+        list[str]
+            List of host aliases (excluding wildcards like * or ?)
+
+        Examples
+        --------
+        >>> hosts = SSHConfigParser.get_hosts()
+        >>> print(hosts)
+        ['server1', 'server2', 'myhost']
+
+        Notes
+        -----
+        - Skips entries with wildcards (* or ?)
+        - Returns empty list if config doesn't exist
+        - Handles multiple hosts on single line
         """
         if config_path is None:
             config_path = Path.home() / ".ssh" / "config"

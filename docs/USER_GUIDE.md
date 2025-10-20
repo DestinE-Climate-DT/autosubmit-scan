@@ -2,17 +2,19 @@
 
 Complete guide to using autosubmit-scan for error monitoring and analysis.
 
+**For unfamiliar terms, see the [Glossary](GLOSSARY.md).**
+
 ## Table of Contents
 
 1. [Installation](#installation)
-2. [Catalog Syntax](#catalog-syntax)
-3. [Pattern Matchers](#pattern-matchers)
-4. [Condition Types](#condition-types)
-5. [Railway Pattern](#railway-pattern)
+2. [Error Catalog Syntax](#catalog-syntax)
+3. [Pattern Matching Types](#pattern-matchers)
+4. [Condition Types (When to Check Next Error)](#condition-types)
+5. [Railway Pattern (Automatic Error Chains)](#railway-pattern)
 6. [CLI Commands](#cli-commands)
 7. [Template Customization](#template-customization)
 8. [Remote File Access](#remote-file-access)
-9. [SSH Connection Pooling](#6-ssh-connection-pooling)
+9. [SSH Connection Reuse (Critical for Remote Scans)](#6-ssh-connection-pooling)
 
 ## Installation
 
@@ -33,6 +35,8 @@ autosubmit-scan --help
 ```
 
 ## Catalog Syntax
+
+An [error catalog](GLOSSARY.md#catalog) is a [YAML](GLOSSARY.md#yaml) configuration file that tells the tool what errors to look for and how to handle them.
 
 ### Basic Structure
 
@@ -72,18 +76,20 @@ errors:
 - **errors**: Dictionary of error definitions
   - **id**: Must match the key in the errors dict
   - **pattern**: Pattern matching configuration
-  - **files**: List of file patterns (glob, URI schemes supported)
+  - **files**: List of file patterns ([glob patterns](GLOSSARY.md#glob-patterns), [URI](GLOSSARY.md#uri) schemes supported)
   - **meaning**: What does this error signify?
   - **suggestion**: How should users respond?
-  - **context_lines**: How many lines before/after to capture
-  - **next_errors**: Railway pattern conditional chains
+  - **context_lines**: How many [lines before/after](GLOSSARY.md#context-lines) to capture
+  - **next_errors**: [Railway pattern](GLOSSARY.md#railway-pattern) [conditional chains](GLOSSARY.md#condition)
   - **metadata**: Custom fields (severity, tags, etc.)
 
 ## Pattern Matchers
 
+[Pattern matching](GLOSSARY.md#pattern-matching) is how the tool searches for errors in your [log files](GLOSSARY.md#log-file). See the [glossary](GLOSSARY.md#pattern-matching) for choosing which type to use.
+
 ### 1. Literal Pattern
 
-Exact string matching:
+[Exact text matching](GLOSSARY.md#literal-pattern). Use when you know the exact error text and it doesn't vary.
 
 ```yaml
 pattern:
@@ -93,7 +99,7 @@ pattern:
 
 ### 2. Regex Pattern
 
-Regular expression matching with optional flags:
+[Flexible pattern matching](GLOSSARY.md#regex-pattern) using [regular expressions](GLOSSARY.md#regex). Use when error text varies slightly.
 
 ```yaml
 pattern:
@@ -112,7 +118,7 @@ pattern:
 
 ### 3. Callable Pattern
 
-Custom Python function for complex matching:
+[Custom Python function](GLOSSARY.md#callable-pattern) for complex matching logic. Use when you need logic beyond text patterns.
 
 ```yaml
 pattern:
@@ -130,7 +136,7 @@ def check_memory_threshold(line: str) -> bool:
 
 ## Condition Types
 
-Conditions determine when railway pattern errors trigger.
+[Conditions](GLOSSARY.md#condition) determine when to check for the next error in a [railway pattern](GLOSSARY.md#railway-pattern) chain. In plain English: "When to check the next error."
 
 ### 1. Always Condition
 
@@ -227,7 +233,20 @@ when:
 
 ## Railway Pattern
 
-The railway pattern enables conditional error chaining. When an error is detected, conditions determine which errors to check next.
+The [Railway Pattern](GLOSSARY.md#railway-pattern) is an automatic error flowchart system. When the tool finds one error, it can automatically check for related errors based on [conditions](GLOSSARY.md#condition) you define.
+
+**Analogy:** Like a medical diagnosis flowchart:
+1. Find symptom: "Fever" → Check temperature
+2. If temperature > 102°F → Check for infection
+3. If bacterial infection → Prescribe antibiotics
+
+**For log files:**
+1. Find "Out of Memory" → Check which process failed
+2. If Python process → Check for memory leak pattern
+3. If leak found → Create ticket
+
+**Without Railway Pattern:** You manually search for each error, one at a time.
+**With Railway Pattern:** The tool follows your flowchart automatically, finding error chains in one scan.
 
 ### Simple Chain
 
@@ -342,11 +361,11 @@ autosubmit-scan scan --catalog my_catalog.yaml --force
 ### View Results
 
 ```bash
-# Launch TUI
+# Launch interactive results viewer
 autosubmit-scan view ./results/report.json
 ```
 
-**TUI Navigation:**
+**[Interactive Results Viewer](GLOSSARY.md#interactive-results-viewer) Navigation:**
 - Arrow keys: Navigate tree
 - Enter: Expand/collapse
 - q: Quit
@@ -379,7 +398,7 @@ Templates are Jinja2 files in `src/reporting/templates/`.
 ```python
 {
     "report": {
-        # Full JSON-LD report
+        # Full scan report (JSON-LD format)
     },
     "summary": {
         "totalMatches": int,
@@ -441,6 +460,8 @@ renderer.render("my_template.j2", data, "output.txt")
 ```
 
 ## Remote File Access
+
+The tool can scan files on different systems using [remote file access](GLOSSARY.md#remote-file-access). It uses [fsspec](GLOSSARY.md#fsspec) (a file access library) behind the scenes - you don't need to configure it directly.
 
 ### Local Files
 
@@ -538,24 +559,26 @@ files:
 ### 5. Performance
 
 - Use multiple cores (`--cores 8`)
-- Cache fingerprints (automatic in Snakemake)
-- Limit context_lines for large files
+- Smart caching (automatic - only re-scans changed files)
+- Limit [context_lines](GLOSSARY.md#context-lines) for large files
 
-### 6. SSH Connection Pooling
+### 6. SSH Connection Reuse
 
-**Critical for remote scans!** When scanning files over SSH/SFTP, configure SSH ControlMaster to avoid connection timeouts.
+**Critical for remote scans!** When scanning files over SSH/SFTP, you MUST configure [SSH connection reuse](GLOSSARY.md#ssh-connection-reuse) to avoid connection timeouts.
 
-**Problem:** Without connection pooling:
-- Each Snakemake rule creates new SSH connections
+**Problem:** Without connection reuse:
+- The tool creates new SSH connections for each file operation
 - Typical scan = 44+ connections (11 errors × 4 operations)
 - Connection timeouts after 2 minutes
 - Slow performance due to repeated SSH handshakes
 
-**Solution:** SSH ControlMaster shares connections across all processes:
+**Solution:** SSH connection reuse (ControlMaster) shares connections across all processes:
 - Reduces 44+ connections to 1-2 per host
-- Dramatically faster connection setup
+- Makes scans 10-40x faster
 - Prevents timeouts
-- Works transparently with Snakemake's parallel execution
+- Works transparently with parallel execution
+
+**Analogy:** Like carpooling vs everyone driving separately - connection reuse is more efficient and faster.
 
 **Quick Setup:**
 

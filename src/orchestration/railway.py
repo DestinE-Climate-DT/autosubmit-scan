@@ -16,7 +16,7 @@ class RailwayExecutor:
     errors should be checked next.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize RailwayExecutor with a ConditionEvaluator."""
         self.evaluator = ConditionEvaluator()
 
@@ -29,21 +29,34 @@ class RailwayExecutor:
         """Get list of next error IDs to check based on conditions.
 
         Evaluates all conditions in error_def.next_errors and returns
-        the error IDs whose conditions are satisfied.
+        the error IDs whose conditions are satisfied. This implements
+        the railway pattern for conditional error chaining.
 
-        Args:
-            error_match: The error match to evaluate conditions against
-            error_def: The error definition containing next_errors
-            catalog: The error catalog (for custom callables)
+        Parameters
+        ----------
+        error_match : ErrorMatch
+            The error match to evaluate conditions against
+        error_def : ErrorDefinition
+            The error definition containing next_errors configuration
+        catalog : ErrorCatalog
+            The error catalog (needed for custom callable conditions)
 
-        Returns:
+        Returns
+        -------
+        list[str]
             List of error IDs that should be checked next, in order
 
-        Examples:
-            >>> executor = RailwayExecutor()
-            >>> next_errors = executor.get_next_errors(match, error_def, catalog)
-            >>> print(next_errors)
-            ['memory_leak_check', 'python_error']
+        Examples
+        --------
+        >>> executor = RailwayExecutor()
+        >>> next_errors = executor.get_next_errors(match, error_def, catalog)
+        >>> print(next_errors)
+        ['memory_leak_check', 'python_error']
+
+        Notes
+        -----
+        The order of returned error IDs matches the order in error_def.next_errors.
+        Only errors whose conditions evaluate to True are included.
         """
         next_error_ids = []
 
@@ -67,24 +80,40 @@ class RailwayPlanner:
 
         Traverses the error catalog starting from initial_error_id
         and builds a map of all reachable errors and their potential
-        next errors.
+        next errors. This creates a directed acyclic graph (DAG) used
+        by Snakemake to plan conditional workflow execution.
 
-        Args:
-            initial_error_id: The starting error ID
-            catalog: The error catalog
+        The algorithm uses breadth-first search to explore all possible
+        error chains, tracking visited nodes to prevent infinite loops.
 
-        Returns:
+        Parameters
+        ----------
+        initial_error_id : str
+            The starting error ID to begin traversal
+        catalog : ErrorCatalog
+            The error catalog containing all error definitions
+
+        Returns
+        -------
+        dict[str, list[str]]
             Dictionary mapping error_id to list of potential next error IDs
+            Keys are all reachable error IDs, values are their next_errors
 
-        Examples:
-            >>> planner = RailwayPlanner()
-            >>> plan = planner.build_execution_plan("slurm_oom", catalog)
-            >>> print(plan)
-            {
-                "slurm_oom": ["memory_leak_check", "python_error"],
-                "memory_leak_check": [],
-                "python_error": []
-            }
+        Examples
+        --------
+        >>> planner = RailwayPlanner()
+        >>> plan = planner.build_execution_plan("slurm_oom", catalog)
+        >>> print(plan)
+        {
+            "slurm_oom": ["memory_leak_check", "python_error"],
+            "memory_leak_check": [],
+            "python_error": []
+        }
+
+        Notes
+        -----
+        This method extracts ALL potential next errors regardless of conditions.
+        Runtime condition evaluation happens in RailwayExecutor.get_next_errors().
         """
         # Check if initial error exists in catalog
         if initial_error_id not in catalog.errors:
