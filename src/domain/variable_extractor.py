@@ -22,8 +22,10 @@ Supports any fsspec-compatible URI for file sources:
 import json
 import os
 import re
+import socket
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 import fsspec
 import yaml
@@ -44,8 +46,69 @@ def _is_fsspec_uri(path: str) -> bool:
     return "://" in path and not path.startswith("file://")
 
 
+def _convert_to_local_if_same_host(path: str) -> str:
+    """Convert remote URI to local path if we're running on the target host.
+
+    This allows catalogs to work both when running remotely (laptop → climatedt-wf)
+    and locally (on climatedt-wf itself).
+
+    Args:
+        path: URI string (e.g., "sftp://climatedt-wf/appl/AS/...")
+
+    Returns:
+        Local path if on same host, otherwise original URI
+
+    Examples:
+        Running on climatedt-wf:
+        >>> _convert_to_local_if_same_host("sftp://climatedt-wf/appl/AS/file.yml")
+        '/appl/AS/file.yml'
+
+        Running on laptop:
+        >>> _convert_to_local_if_same_host("sftp://climatedt-wf/appl/AS/file.yml")
+        'sftp://climatedt-wf/appl/AS/file.yml'
+    """
+    if not _is_fsspec_uri(path):
+        return path
+
+    # Parse the URI
+    parsed = urlparse(path)
+
+    # Only handle ssh/sftp protocols
+    if parsed.scheme not in ("ssh", "sftp"):
+        return path
+
+    # Get target hostname from URI
+    target_host = parsed.hostname or parsed.netloc.split("@")[-1].split(":")[0]
+
+    # Get current hostname
+    current_hostname = socket.gethostname()
+    current_fqdn = socket.getfqdn()
+
+    # Check if we're on the same host
+    # Compare hostname, FQDN, and common patterns
+    same_host = any([
+        target_host == current_hostname,
+        target_host == current_fqdn,
+        target_host in current_hostname,
+        current_hostname.startswith(target_host),
+        target_host.startswith(current_hostname.split(".")[0]),
+        # Handle common patterns like climatedt-wf and climatedt-wf.csc.fi
+        target_host.split(".")[0] == current_hostname.split(".")[0],
+    ])
+
+    if same_host:
+        # Convert to local path
+        local_path = parsed.path
+        logger.debug(f"Auto-detected running on {target_host}, converting {path} → {local_path}")
+        return local_path
+
+    return path
+
+
 def _read_file_content(path: str) -> str:
     """Read file content from local path or fsspec URI.
+
+    Automatically converts remote URIs to local paths when running on the same host.
 
     Args:
         path: Local path or fsspec URI
@@ -57,18 +120,21 @@ def _read_file_content(path: str) -> str:
         FileNotFoundError: If file doesn't exist
         RuntimeError: If file cannot be read
     """
-    if _is_fsspec_uri(path):
+    # Auto-detect and convert to local path if on same host
+    converted_path = _convert_to_local_if_same_host(path)
+
+    if _is_fsspec_uri(converted_path):
         # Use fsspec to read remote files
         try:
-            with fsspec.open(path, "r") as f:
+            with fsspec.open(converted_path, "r") as f:
                 return f.read()
         except FileNotFoundError as e:
-            raise FileNotFoundError(f"File not found at URI: {path}") from e
+            raise FileNotFoundError(f"File not found at URI: {converted_path}") from e
         except Exception as e:
-            raise RuntimeError(f"Failed to read file from {path}: {e}") from e
+            raise RuntimeError(f"Failed to read file from {converted_path}: {e}") from e
     else:
         # Use local file path with expanduser support
-        file_path = Path(path).expanduser()
+        file_path = Path(converted_path).expanduser()
         if not file_path.exists():
             raise FileNotFoundError(f"File not found: {file_path}")
         return file_path.read_text()
