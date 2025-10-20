@@ -59,6 +59,7 @@ A comprehensive remote error monitoring and scanning system for analyzing log fi
 
 - **Pattern Matching**: Support for literal, regex, and callable patterns
 - **Remote File Access**: Scan files via S3, SFTP, FTP, and local filesystems
+- **SSH Connection Pooling**: Efficient connection management for remote scans (SSH ControlMaster integration)
 - **Railway Pattern**: Conditional error chaining based on match context
 - **Workflow Orchestration**: Powered by Snakemake for scalable, parallel execution
 

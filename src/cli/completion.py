@@ -94,10 +94,21 @@ def get_fsspec_filesystem(uri: str):
 
         # Note: fsspec's sshfs uses asyncssh which automatically discovers keys from
         # ~/.ssh/ and ssh-agent, so we don't need to explicitly specify key_filename
+        #
+        # asyncssh connection pooling:
+        # - Connections are managed by asyncssh's connection pool
+        # - SSH ControlMaster (configured in ~/.ssh/config) provides cross-process pooling
+        # - This in-process cache (_FILESYSTEM_CACHE) reuses filesystem objects within same process
+        # - For best performance, configure SSH ControlMaster:
+        #   Run: as-scan check-ssh [hostname]
+        #   Docs: docs/SSH_CONNECTION_POOLING.md
 
         fs = fsspec.filesystem(protocol, **fs_kwargs)
 
-        # Cache SSH/SFTP connections for reuse
+        # Cache SSH/SFTP connections for reuse within this process
+        # Note: Snakemake rules run in separate processes, so this cache only helps
+        # when multiple operations occur within the same rule. SSH ControlMaster
+        # provides the cross-process connection sharing that Snakemake needs.
         _FILESYSTEM_CACHE[cache_key] = fs
     else:
         # Default to local filesystem

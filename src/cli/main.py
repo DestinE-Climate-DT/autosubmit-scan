@@ -77,6 +77,7 @@ def cli(verbose, quiet):
 
 # Import command modules (must be after cli group definition)
 from src.cli.commands.add import add  # noqa: E402
+from src.cli.commands.check_ssh import check_ssh  # noqa: E402
 from src.cli.commands.dag import dag  # noqa: E402
 from src.cli.commands.default import default  # noqa: E402
 from src.cli.commands.export import export  # noqa: E402
@@ -93,10 +94,11 @@ cli.add_command(validate)
 cli.add_command(init)
 cli.add_command(add)
 cli.add_command(dag)
+cli.add_command(check_ssh)
 cli.add_command(default)  # Hidden command for expid shortcut
 
 # Populate subcommand names for shortcut detection
-SUBCOMMAND_NAMES.update(["scan", "view", "export", "validate", "init", "add", "dag", "default"])
+SUBCOMMAND_NAMES.update(["scan", "view", "export", "validate", "init", "add", "dag", "check-ssh", "default"])
 
 
 def main():

@@ -12,6 +12,7 @@ Complete guide to using autosubmit-scan for error monitoring and analysis.
 6. [CLI Commands](#cli-commands)
 7. [Template Customization](#template-customization)
 8. [Remote File Access](#remote-file-access)
+9. [SSH Connection Pooling](#6-ssh-connection-pooling)
 
 ## Installation
 
@@ -539,6 +540,44 @@ files:
 - Use multiple cores (`--cores 8`)
 - Cache fingerprints (automatic in Snakemake)
 - Limit context_lines for large files
+
+### 6. SSH Connection Pooling
+
+**Critical for remote scans!** When scanning files over SSH/SFTP, configure SSH ControlMaster to avoid connection timeouts.
+
+**Problem:** Without connection pooling:
+- Each Snakemake rule creates new SSH connections
+- Typical scan = 44+ connections (11 errors × 4 operations)
+- Connection timeouts after 2 minutes
+- Slow performance due to repeated SSH handshakes
+
+**Solution:** SSH ControlMaster shares connections across all processes:
+- Reduces 44+ connections to 1-2 per host
+- Dramatically faster connection setup
+- Prevents timeouts
+- Works transparently with Snakemake's parallel execution
+
+**Quick Setup:**
+
+1. Check your current configuration:
+   ```bash
+   as-scan check-ssh [hostname]
+   ```
+
+2. If needed, add to `~/.ssh/config`:
+   ```ssh-config
+   Host *
+       ControlMaster auto
+       ControlPath ~/.ssh/control-%C
+       ControlPersist 10m
+   ```
+
+3. Verify it works:
+   ```bash
+   as-scan check-ssh [hostname]
+   ```
+
+**See detailed guide:** [docs/SSH_CONNECTION_POOLING.md](SSH_CONNECTION_POOLING.md)
 - Use dry run to test patterns first
 
 ## Troubleshooting
