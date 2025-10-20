@@ -78,7 +78,13 @@ class ErrorReportApp(App):
         # Group matches by error type
         errors_by_type: dict[str, list] = {}
         for match in self.report_data["hasPart"]:
-            error_id = match.get("errorDefinition", "unknown")
+            # errorDefinition is a dict with @id in JSON-LD format
+            error_def = match.get("errorDefinition", "unknown")
+            if isinstance(error_def, dict):
+                error_id = error_def.get("@id", "unknown")
+            else:
+                error_id = error_def
+
             if error_id not in errors_by_type:
                 errors_by_type[error_id] = []
             errors_by_type[error_id].append(match)
