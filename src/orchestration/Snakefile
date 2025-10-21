@@ -1,13 +1,16 @@
 """
-Snakemake Workflow for Error Scanning
+Snakemake Workflow for Error Scanning (File-Centric Architecture)
 
-This workflow implements atomic, checkpoint-based error scanning with:
-1. File discovery (checkpoint) - Expands glob patterns to file lists
-2. File fingerprinting (checkpoint) - Caches file metadata
-3. Pattern matching (atomic rule) - Finds match line numbers
-4. Match filtering (checkpoint) - Funnels to only files with matches
-5. Context extraction (atomic rule) - Extracts full ErrorMatch objects
-6. Result aggregation (rule) - Combines all results
+This workflow implements efficient file-centric error scanning:
+1. File discovery (checkpoint) - Find ALL unique files across ALL error patterns
+2. File fingerprinting (checkpoint) - Create metadata fingerprint for each unique file
+3. Multi-pattern scanning (rule) - Scan each file ONCE for ALL error patterns
+4. Result splitting (rule) - Split combined results by error type
+5. Result aggregation (rule) - Combine all matches for each error
+
+Key improvement: Each remote file is opened and read EXACTLY ONCE, regardless of
+how many error patterns are being checked. This dramatically reduces SSH connections
+and I/O operations, preventing timeouts and connection drops.
 
 Usage:
     snakemake --snakefile src/orchestration/Snakefile --configfile config/workflow_config.yaml --cores 4
@@ -30,11 +33,8 @@ from src.orchestration.helpers import (
     get_error_definition,
 )
 from src.orchestration.scanners import (
-    scan_file_for_pattern,
-    extract_matches_with_context,
+    scan_file_for_all_patterns,
 )
-from src.orchestration.railway import RailwayExecutor
-from src.domain.models import ErrorMatch
 
 
 # Load configuration
@@ -51,14 +51,8 @@ ERROR_IDS = list(CATALOG.errors.keys())
 # Output directories
 MANIFESTS_DIR = config["output_dirs"]["manifests"]
 FINGERPRINTS_DIR = config["output_dirs"]["fingerprints"]
-MATCHES_DIR = config["output_dirs"]["matches"]
-FILTERED_DIR = config["output_dirs"]["filtered"]
 RESULTS_DIR = config["output_dirs"]["results"]
 AGGREGATED_DIR = config["output_dirs"]["aggregated"]
-RAILWAY_DIR = config["output_dirs"].get("railway", "output/railway")
-
-# Initialize Railway Executor
-RAILWAY_EXECUTOR = RailwayExecutor()
 
 
 # ============================================================================
@@ -74,36 +68,41 @@ rule all:
 
 
 # ============================================================================
-# CHECKPOINT: File Discovery
-# Expands glob patterns to concrete file lists
+# CHECKPOINT: Discover All Unique Files
+# Finds all unique files across ALL error patterns (deduplicated)
 # ============================================================================
 
-checkpoint discover_files:
+checkpoint discover_all_unique_files:
     output:
-        manifest=f"{MANIFESTS_DIR}/{{error_id}}_files.txt"
+        manifest=f"{MANIFESTS_DIR}/all_unique_files.txt"
     run:
-        # Get error definition
-        error_def = get_error_definition(CATALOG, wildcards.error_id)
+        all_files = set()
 
-        # Expand file patterns using fsspec
-        discovered_files = expand_fsspec_patterns(error_def.files)
+        # Collect files from all error definitions
+        for error_id in ERROR_IDS:
+            error_def = get_error_definition(CATALOG, error_id)
+            discovered_files = expand_fsspec_patterns(error_def.files)
+            all_files.update(discovered_files)
+
+        # Convert to sorted list for deterministic output
+        unique_files = sorted(all_files)
 
         # Write manifest
-        write_manifest(output.manifest, discovered_files)
+        write_manifest(output.manifest, unique_files)
 
-        print(f"Discovered {len(discovered_files)} files for error '{wildcards.error_id}'")
+        print(f"Discovered {len(unique_files)} unique files across all {len(ERROR_IDS)} error patterns")
 
 
 # ============================================================================
 # CHECKPOINT: File Fingerprinting
-# Creates fingerprints for caching and change detection
+# Creates fingerprints for caching and change detection (ONE per unique file)
 # ============================================================================
 
 checkpoint fingerprint_file:
     input:
-        manifest=f"{MANIFESTS_DIR}/{{error_id}}_files.txt"
+        manifest=f"{MANIFESTS_DIR}/all_unique_files.txt"
     output:
-        fingerprint=f"{FINGERPRINTS_DIR}/{{error_id}}/{{file_hash}}.json"
+        fingerprint=f"{FINGERPRINTS_DIR}/{{file_hash}}.json"
     run:
         # Read the manifest to get file URIs
         file_uris = read_manifest(input.manifest)
@@ -128,15 +127,15 @@ checkpoint fingerprint_file:
 
 
 # ============================================================================
-# RULE: Pattern Matching (Atomic)
-# Scans file and records match line numbers
+# RULE: Scan File for All Patterns (Multi-Pattern Scanning)
+# Opens file ONCE and scans for ALL error patterns in memory
 # ============================================================================
 
-rule match_pattern:
+rule scan_file_all_patterns:
     input:
-        fingerprint=f"{FINGERPRINTS_DIR}/{{error_id}}/{{file_hash}}.json"
+        fingerprint=f"{FINGERPRINTS_DIR}/{{file_hash}}.json"
     output:
-        matches=f"{MATCHES_DIR}/{{error_id}}/{{file_hash}}.json"
+        results=f"{RESULTS_DIR}/combined/{{file_hash}}_all_errors.json"
     run:
         # Load fingerprint to get file URI
         with open(input.fingerprint, 'r') as f:
@@ -144,155 +143,82 @@ rule match_pattern:
 
         file_uri = fingerprint["uri"]
 
-        # Get error definition
-        error_def = get_error_definition(CATALOG, wildcards.error_id)
+        # Scan file for ALL error patterns in one pass
+        all_matches = scan_file_for_all_patterns(file_uri, CATALOG)
 
-        # Scan file for pattern matches
-        line_numbers = scan_file_for_pattern(file_uri, error_def.pattern)
+        # Convert ErrorMatch objects to JSON
+        results_by_error = {}
+        for error_id, matches in all_matches.items():
+            results_by_error[error_id] = [match.model_dump(mode='json') for match in matches]
 
-        # Save match locations
-        match_data = {
-            "file_uri": file_uri,
-            "error_id": wildcards.error_id,
-            "match_line_numbers": line_numbers
-        }
+        # Write combined results
+        Path(output.results).parent.mkdir(parents=True, exist_ok=True)
+        with open(output.results, 'w') as f:
+            json.dump(results_by_error, f, indent=2)
 
-        Path(output.matches).parent.mkdir(parents=True, exist_ok=True)
-        with open(output.matches, 'w') as f:
-            json.dump(match_data, f, indent=2)
-
-        print(f"Found {len(line_numbers)} matches in {file_uri}")
+        total_matches = sum(len(matches) for matches in all_matches.values())
+        print(f"Scanned {file_uri}: found {total_matches} total matches across {len(all_matches)} error types")
 
 
 # ============================================================================
-# CHECKPOINT: Filter Matches (Funneling)
-# Creates list of only files that have matches
+# RULE: Split Results by Error Type
+# Extracts results for a specific error from the combined results
 # ============================================================================
 
-def get_match_files(wildcards):
-    """Get match files for all discovered files (after discover_files checkpoint)."""
-    # Wait for discover_files checkpoint to complete
-    checkpoint_output = checkpoints.discover_files.get(**wildcards).output.manifest
+rule split_results_by_error:
+    input:
+        combined=f"{RESULTS_DIR}/combined/{{file_hash}}_all_errors.json"
+    output:
+        split=f"{RESULTS_DIR}/by_error/{{error_id}}/{{file_hash}}.json"
+    run:
+        # Load combined results
+        with open(input.combined, 'r') as f:
+            all_results = json.load(f)
 
-    # Read the discovered file manifest
-    file_uris = read_manifest(checkpoint_output)
+        # Extract matches for this specific error
+        error_matches = all_results.get(wildcards.error_id, [])
 
-    # Generate file hashes and expand to match files
+        # Write split results
+        Path(output.split).parent.mkdir(parents=True, exist_ok=True)
+        with open(output.split, 'w') as f:
+            json.dump(error_matches, f, indent=2)
+
+
+# ============================================================================
+# RULE: Aggregate Results by Error
+# Combines all file results for each error type
+# ============================================================================
+
+def get_split_files_for_error(wildcards):
+    """Get all split result files for a specific error after file discovery."""
+    # Wait for file discovery checkpoint
+    checkpoints.discover_all_unique_files.get()
+
+    # Read the manifest
+    manifest_path = f"{MANIFESTS_DIR}/all_unique_files.txt"
+    file_uris = read_manifest(manifest_path)
+
+    # Get file hashes
     file_hashes = [get_file_hash(uri) for uri in file_uris]
+
+    # Expand to split result files for this error
     return expand(
-        f"{MATCHES_DIR}/{{error_id}}/{{file_hash}}.json",
+        f"{RESULTS_DIR}/by_error/{{error_id}}/{{file_hash}}.json",
         error_id=wildcards.error_id,
         file_hash=file_hashes
     )
 
 
-checkpoint filter_matches:
+rule aggregate_by_error:
     input:
-        # This will depend on all match files for this error
-        # We use a function to get them dynamically after discover_files checkpoint
-        matches=get_match_files
-    output:
-        filtered=f"{FILTERED_DIR}/{{error_id}}_files_with_matches.txt"
-    run:
-        files_with_matches = []
-
-        # Check each match file
-        for match_file in input.matches:
-            with open(match_file, 'r') as f:
-                match_data = json.load(f)
-
-            # Only include files that have at least one match
-            if match_data["match_line_numbers"]:
-                files_with_matches.append(match_data["file_uri"])
-
-        # Write filtered manifest
-        write_manifest(output.filtered, files_with_matches)
-
-        print(f"Filtered to {len(files_with_matches)} files with matches for error '{wildcards.error_id}'")
-
-
-# ============================================================================
-# RULE: Context Extraction (Atomic)
-# Extracts full ErrorMatch objects with context
-# ============================================================================
-
-rule extract_context:
-    input:
-        matches=f"{MATCHES_DIR}/{{error_id}}/{{file_hash}}.json",
-        fingerprint=f"{FINGERPRINTS_DIR}/{{error_id}}/{{file_hash}}.json",
-        filtered=f"{FILTERED_DIR}/{{error_id}}_files_with_matches.txt"
-    output:
-        result=f"{RESULTS_DIR}/{{error_id}}/{{file_hash}}_matches.json"
-    run:
-        # Load match data
-        with open(input.matches, 'r') as f:
-            match_data = json.load(f)
-
-        # Check if this file has matches (should be in filtered list)
-        if not match_data["match_line_numbers"]:
-            # No matches - write empty result
-            Path(output.result).parent.mkdir(parents=True, exist_ok=True)
-            with open(output.result, 'w') as f:
-                json.dump([], f, indent=2)
-            return
-
-        file_uri = match_data["file_uri"]
-        line_numbers = match_data["match_line_numbers"]
-
-        # Get error definition
-        error_def = get_error_definition(CATALOG, wildcards.error_id)
-
-        # Extract matches with context
-        error_matches = extract_matches_with_context(
-            file_uri,
-            line_numbers,
-            error_def
-        )
-
-        # Convert to JSON-serializable format
-        matches_json = [match.model_dump(mode='json') for match in error_matches]
-
-        # Write results
-        Path(output.result).parent.mkdir(parents=True, exist_ok=True)
-        with open(output.result, 'w') as f:
-            json.dump(matches_json, f, indent=2)
-
-        print(f"Extracted {len(error_matches)} matches with context from {file_uri}")
-
-
-# ============================================================================
-# RULE: Aggregate Results
-# Combines all ErrorMatch objects into final output
-# ============================================================================
-
-def get_filtered_result_files(wildcards):
-    """Get result files for errors that had matches (after filter_matches checkpoint)."""
-    # This function is called AFTER the filter_matches checkpoint completes
-    checkpoint_output = checkpoints.filter_matches.get(**wildcards).output.filtered
-
-    # Read the filtered manifest
-    file_uris = read_manifest(checkpoint_output)
-
-    # Generate file hashes and expand to result files
-    file_hashes = [get_file_hash(uri) for uri in file_uris]
-    return expand(
-        f"{RESULTS_DIR}/{{error_id}}/{{file_hash}}_matches.json",
-        error_id=wildcards.error_id,
-        file_hash=file_hashes
-    )
-
-
-rule aggregate_results:
-    input:
-        # Depend on results from files that had matches (checkpoint-aware)
-        results=get_filtered_result_files
+        split_files=get_split_files_for_error
     output:
         aggregated=f"{AGGREGATED_DIR}/{{error_id}}_all_matches.json"
     run:
         all_matches = []
 
         # Combine all matches from all files
-        for result_file in input.results:
+        for result_file in input.split_files:
             with open(result_file, 'r') as f:
                 file_matches = json.load(f)
             all_matches.extend(file_matches)
@@ -303,135 +229,3 @@ rule aggregate_results:
             json.dump(all_matches, f, indent=2)
 
         print(f"Aggregated {len(all_matches)} total matches for error '{wildcards.error_id}'")
-
-
-# ============================================================================
-# CHECKPOINT: Evaluate Railway Pattern
-# Evaluates conditions for each match and determines next errors to check
-# ============================================================================
-
-checkpoint evaluate_railway:
-    input:
-        result=f"{RESULTS_DIR}/{{error_id}}/{{file_hash}}_matches.json"
-    output:
-        railway=f"{RAILWAY_DIR}/{{error_id}}/{{file_hash}}_next_errors.json"
-    run:
-        # Load error matches
-        with open(input.result, 'r') as f:
-            matches_json = json.load(f)
-
-        # Skip if no matches
-        if not matches_json:
-            Path(output.railway).parent.mkdir(parents=True, exist_ok=True)
-            with open(output.railway, 'w') as f:
-                json.dump({}, f, indent=2)
-            return
-
-        # Get error definition
-        error_def = get_error_definition(CATALOG, wildcards.error_id)
-
-        # Convert JSON back to ErrorMatch objects
-        error_matches = [ErrorMatch.model_validate(m) for m in matches_json]
-
-        # Evaluate railway pattern for each match
-        next_errors_map = {}
-        for match in error_matches:
-            next_error_ids = RAILWAY_EXECUTOR.get_next_errors(match, error_def, CATALOG)
-
-            if next_error_ids:
-                # Store mapping: line_number -> list of next error IDs
-                next_errors_map[str(match.line_number)] = next_error_ids
-
-        # Write railway evaluation result
-        Path(output.railway).parent.mkdir(parents=True, exist_ok=True)
-        with open(output.railway, 'w') as f:
-            json.dump(next_errors_map, f, indent=2)
-
-        if next_errors_map:
-            total_next = sum(len(v) for v in next_errors_map.values())
-            print(f"Railway: {len(next_errors_map)} matches triggered {total_next} next error checks")
-        else:
-            print(f"Railway: No next errors triggered for '{wildcards.error_id}'")
-
-
-# ============================================================================
-# RULE: Scan Chained Error (Railway Pattern)
-# Scans same file for next error in the chain based on railway conditions
-# ============================================================================
-
-rule scan_chained_error:
-    input:
-        railway=f"{RAILWAY_DIR}/{{source_error_id}}/{{file_hash}}_next_errors.json",
-        fingerprint=f"{FINGERPRINTS_DIR}/{{source_error_id}}/{{file_hash}}.json"
-    output:
-        chained_result=f"{RESULTS_DIR}/chained/{{source_error_id}}_to_{{next_error_id}}/{{file_hash}}_matches.json"
-    run:
-        # Load railway data
-        with open(input.railway, 'r') as f:
-            next_errors_map = json.load(f)
-
-        # Check if this file has any next errors for the target next_error_id
-        has_target_error = any(
-            wildcards.next_error_id in next_error_ids
-            for next_error_ids in next_errors_map.values()
-        )
-
-        if not has_target_error:
-            # This file doesn't need to be scanned for this next error
-            Path(output.chained_result).parent.mkdir(parents=True, exist_ok=True)
-            with open(output.chained_result, 'w') as f:
-                json.dump([], f, indent=2)
-            return
-
-        # Load fingerprint to get file URI
-        with open(input.fingerprint, 'r') as f:
-            fingerprint = json.load(f)
-
-        file_uri = fingerprint["uri"]
-
-        # Get next error definition
-        next_error_def = get_error_definition(CATALOG, wildcards.next_error_id)
-
-        # Scan file for the next error pattern
-        line_numbers = scan_file_for_pattern(file_uri, next_error_def.pattern)
-
-        if not line_numbers:
-            # No matches for chained error
-            Path(output.chained_result).parent.mkdir(parents=True, exist_ok=True)
-            with open(output.chained_result, 'w') as f:
-                json.dump([], f, indent=2)
-            return
-
-        # Extract matches with context
-        error_matches = extract_matches_with_context(
-            file_uri,
-            line_numbers,
-            next_error_def
-        )
-
-        # Convert to JSON-serializable format
-        matches_json = [match.model_dump(mode='json') for match in error_matches]
-
-        # Write results
-        Path(output.chained_result).parent.mkdir(parents=True, exist_ok=True)
-        with open(output.chained_result, 'w') as f:
-            json.dump(matches_json, f, indent=2)
-
-        print(f"Railway: Found {len(error_matches)} matches for chained error '{wildcards.next_error_id}' in {file_uri}")
-
-
-# ============================================================================
-# HELPER: Dynamic input function for getting discovered files
-# ============================================================================
-
-def get_discovered_file_hashes(wildcards):
-    """Get file hashes for all discovered files after discovery checkpoint."""
-    # Wait for discover_files checkpoint to complete
-    checkpoints.discover_files.get(error_id=wildcards.error_id)
-
-    # Read the manifest
-    manifest_path = f"{MANIFESTS_DIR}/{wildcards.error_id}_files.txt"
-    file_uris = read_manifest(manifest_path)
-
-    # Return file hashes
-    return [get_file_hash(uri) for uri in file_uris]

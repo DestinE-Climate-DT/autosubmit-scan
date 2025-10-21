@@ -3,11 +3,12 @@
 Provides high-level functions that wrap the pattern matching components
 from Iteration 2 for use in Snakemake rules:
 
-- scan_file_for_pattern: Scan a file and return line numbers of matches
+- scan_file_for_pattern: Scan a file and return line numbers of matches (single pattern)
+- scan_file_for_all_patterns: Scan a file for ALL patterns in one pass (multi-pattern)
 - extract_matches_with_context: Extract full ErrorMatch objects with context
 """
 
-from src.domain.models import ErrorDefinition, ErrorMatch, PatternMatcher
+from src.domain.models import ErrorCatalog, ErrorDefinition, ErrorMatch, PatternMatcher
 from src.matching.context_extractor import ContextExtractor
 from src.matching.match_builder import ErrorMatchBuilder
 from src.matching.pattern_matcher import PatternMatcherFactory
@@ -106,3 +107,79 @@ def extract_matches_with_context(
         matches.append(match)
 
     return matches
+
+
+def scan_file_for_all_patterns(file_uri: str, catalog: ErrorCatalog) -> dict[str, list[ErrorMatch]]:
+    """Scan a file for ALL error patterns in one pass.
+
+    This is the key function for file-centric scanning. It opens the file ONCE,
+    reads it into memory, and scans for ALL error patterns. This dramatically
+    reduces I/O operations and SSH connections for remote files.
+
+    Args:
+        file_uri: URI of file to scan (supports all fsspec protocols)
+        catalog: ErrorCatalog containing all error definitions
+
+    Returns:
+        Dictionary mapping error_id -> list of ErrorMatch objects
+        Only includes error IDs that had at least one match.
+
+    Examples:
+        >>> catalog = load_catalog("errors.yaml")
+        >>> results = scan_file_for_all_patterns("sftp://host/log.txt", catalog)
+        >>> results.keys()
+        dict_keys(['slurm_oom', 'python_traceback'])
+        >>> len(results['slurm_oom'])
+        3
+    """
+    # Results dictionary: error_id -> list of ErrorMatch objects
+    results = {}
+
+    # Read the entire file content into memory ONCE
+    # We use FileStream to support all fsspec protocols
+    file_lines = []
+    with FileStream.open_file(file_uri, strip_newlines=False) as stream:
+        for line_number, line_text in stream.read_lines():
+            file_lines.append((line_number, line_text))
+
+    # For each error definition, scan the in-memory file
+    for error_id, error_def in catalog.errors.items():
+        # Create pattern matcher for this error
+        matcher = PatternMatcherFactory.create_matcher(error_def.pattern)
+
+        # Find all matching line numbers
+        matched_line_numbers = []
+        for line_number, line_text in file_lines:
+            if matcher.match(line_text):
+                if line_number not in matched_line_numbers:
+                    matched_line_numbers.append(line_number)
+
+        # If we found matches, extract context for each one
+        if matched_line_numbers:
+            extractor = ContextExtractor()
+            builder = ErrorMatchBuilder()
+            matches = []
+
+            for line_number in matched_line_numbers:
+                # Extract context around this line
+                context = extractor.extract_context(
+                    file_uri=file_uri,
+                    line_number=line_number,
+                    context_lines=error_def.context_lines,
+                )
+
+                # Build the ErrorMatch object
+                match = builder.build_match(
+                    error_def=error_def,
+                    file_uri=file_uri,
+                    line_number=line_number,
+                    matched_text=context.matched_line,
+                    context=context,
+                )
+
+                matches.append(match)
+
+            # Store results for this error
+            results[error_id] = matches
+
+    return results
