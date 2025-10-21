@@ -157,12 +157,19 @@ def scan(catalog, output, cores, dryrun, force, verbose):
 
         logger.debug(f"Executing: {' '.join(cmd)}")
 
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        # Stream output in verbose mode, capture otherwise
+        if verbose:
+            # Stream output directly to console for real-time progress
+            result = subprocess.run(cmd, text=True)
+        else:
+            # Capture output silently
+            result = subprocess.run(cmd, capture_output=True, text=True)
 
         if result.returncode != 0:
             logger.error("Workflow execution failed")
-            logger.error(result.stderr)
-            if result.stdout:
+            if not verbose and hasattr(result, 'stderr') and result.stderr:
+                logger.error(result.stderr)
+            if not verbose and hasattr(result, 'stdout') and result.stdout:
                 logger.debug(f"Stdout: {result.stdout}")
             sys.exit(1)
 
