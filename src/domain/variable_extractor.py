@@ -32,6 +32,7 @@ import yaml
 from loguru import logger
 
 from src.domain.models import VariableExtractor
+from src.infrastructure.ssh_config import SSHConfigParser
 
 
 def _is_fsspec_uri(path: str) -> bool:
@@ -158,6 +159,10 @@ def extract_variable(extractor: VariableExtractor) -> str:
         if extractor.source == "env":
             return _extract_from_env(extractor)
 
+        # Handle SSH config extraction
+        if extractor.source == "ssh_config":
+            return _extract_from_ssh_config(extractor)
+
         # Handle file extraction (local or remote)
         content = _read_file_content(extractor.path)
 
@@ -175,7 +180,12 @@ def extract_variable(extractor: VariableExtractor) -> str:
 
     except Exception as e:
         if extractor.default is not None:
-            source_desc = f"environment variable '{extractor.pattern}'" if extractor.source == "env" else f"file {extractor.path}"
+            if extractor.source == "env":
+                source_desc = f"environment variable '{extractor.pattern}'"
+            elif extractor.source == "ssh_config":
+                source_desc = f"SSH config for host '{extractor.host_alias}' field '{extractor.field}'"
+            else:
+                source_desc = f"file {extractor.path}"
             logger.warning(f"Variable extraction failed from {source_desc}: {e}, using default: {extractor.default}")
             return extractor.default
         raise ValueError(f"Variable extraction failed: {e}") from e
@@ -200,6 +210,35 @@ def _extract_from_env(extractor: VariableExtractor) -> str:
         raise ValueError(f"Environment variable '{env_var_name}' is not set")
 
     return value.strip() if extractor.strip else value
+
+
+def _extract_from_ssh_config(extractor: VariableExtractor) -> str:
+    """Extract value from SSH configuration file.
+
+    Args:
+        extractor: Variable extractor configuration with host_alias and field
+
+    Returns:
+        SSH config field value (user, hostname, port, or identity_file)
+
+    Raises:
+        ValueError: If host alias not found or field not set in config
+    """
+    host_alias = extractor.host_alias
+    field = extractor.field
+
+    # Parse SSH config for the host
+    config = SSHConfigParser.parse_host(host_alias)
+
+    # Get the requested field
+    value = config.get(field)
+
+    if value is None:
+        raise ValueError(f"Field '{field}' not found in SSH config for host '{host_alias}'")
+
+    # Convert to string and optionally strip
+    value_str = str(value)
+    return value_str.strip() if extractor.strip else value_str
 
 
 def _extract_with_regex(content: str, extractor: VariableExtractor) -> str:
@@ -301,7 +340,7 @@ def extract_catalog_variables(extractors: dict[str, VariableExtractor]) -> dict[
                 logger.debug(f"Extracted variable '{var_name}' from environment override '{env_override_name}': {value}")
                 continue
 
-            # Render templates in extractor path using previously extracted variables
+            # Render templates in extractor fields using previously extracted variables
             if extractor.source == "file" and extractor.path:
                 try:
                     template = Template(extractor.path)
@@ -321,12 +360,32 @@ def extract_catalog_variables(extractors: dict[str, VariableExtractor]) -> dict[
                 except Exception as e:
                     logger.warning(f"Failed to render path template for '{var_name}': {e}, using original path")
 
+            # Render templates in host_alias for ssh_config source
+            elif extractor.source == "ssh_config" and extractor.host_alias:
+                try:
+                    template = Template(extractor.host_alias)
+                    rendered_host = template.render(**variables)
+                    if rendered_host != extractor.host_alias:
+                        logger.debug(f"Rendered host_alias template for '{var_name}': {extractor.host_alias} -> {rendered_host}")
+                        # Create a new extractor with rendered host_alias
+                        extractor = VariableExtractor(
+                            source=extractor.source,
+                            host_alias=rendered_host,
+                            field=extractor.field,
+                            default=extractor.default,
+                            strip=extractor.strip,
+                        )
+                except Exception as e:
+                    logger.warning(f"Failed to render host_alias template for '{var_name}': {e}, using original host_alias")
+
             value = extract_variable(extractor)
             variables[var_name] = value
 
             # Log extraction with appropriate source description
             if extractor.source == "env":
                 logger.debug(f"Extracted variable '{var_name}' from environment variable '{extractor.pattern}': {value}")
+            elif extractor.source == "ssh_config":
+                logger.debug(f"Extracted variable '{var_name}' from SSH config host '{extractor.host_alias}' field '{extractor.field}': {value}")
             else:
                 logger.debug(f"Extracted variable '{var_name}' from {extractor.path}: {value}")
 

@@ -318,12 +318,18 @@ class VariableExtractor(BaseModel):
     Source types:
     - file: Extract from local or remote files using various methods
     - env: Extract from environment variable
+    - ssh_config: Extract from SSH configuration file
 
     File extraction methods:
     - regex: Extract using regular expression pattern (group 1 or named 'value')
     - line: Extract specific line number
     - json_path: Extract from JSON file using JSONPath expression
     - yaml_path: Extract from YAML file using dot notation path (e.g., 'config.platforms.host')
+
+    SSH config extraction:
+    - host_alias: SSH host alias to look up (e.g., 'mn5-cluster1', 'climatedt-wf')
+    - field: SSH config field to extract ('user', 'hostname', 'port', 'identity_file')
+    - default: Default value if host alias or field not found
 
     Supports any fsspec-compatible URI for file sources:
     - Local: /path/to/file or ~/path/to/file
@@ -340,11 +346,13 @@ class VariableExtractor(BaseModel):
 
     model_config = {"validate_assignment": True}
 
-    source: str = Field("file", description="Source type: 'file' or 'env'")
+    source: str = Field("file", description="Source type: 'file', 'env', or 'ssh_config'")
     path: str | None = Field(None, description="Local path or fsspec URI to file (required for source='file')")
     method: str = Field("regex", description="Extraction method: 'regex', 'line', 'json_path', 'yaml_path'")
     pattern: str | None = Field(None, description="Pattern for regex extraction, JSONPath, YAML path, or env var name")
     line_number: int | None = Field(None, description="Line number for 'line' method (1-indexed)")
+    host_alias: str | None = Field(None, description="SSH host alias for 'ssh_config' source (supports Jinja2 templates)")
+    field: str | None = Field(None, description="SSH config field to extract: 'user', 'hostname', 'port', 'identity_file'")
     default: str | None = Field(None, description="Default value if extraction fails")
     strip: bool = Field(True, description="Strip whitespace from extracted value")
 
@@ -372,8 +380,16 @@ class VariableExtractor(BaseModel):
             if not self.pattern:
                 raise ValueError("'pattern' (environment variable name) is required when source is 'env'")
 
+        elif self.source == "ssh_config":
+            if not self.host_alias:
+                raise ValueError("'host_alias' is required when source is 'ssh_config'")
+            if not self.field:
+                raise ValueError("'field' is required when source is 'ssh_config'")
+            if self.field not in ["user", "hostname", "port", "identity_file"]:
+                raise ValueError(f"Invalid field: {self.field}. Must be 'user', 'hostname', 'port', or 'identity_file'")
+
         else:
-            raise ValueError(f"Invalid source: {self.source}. Must be 'file' or 'env'")
+            raise ValueError(f"Invalid source: {self.source}. Must be 'file', 'env', or 'ssh_config'")
 
         return self
 
