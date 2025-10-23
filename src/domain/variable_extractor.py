@@ -31,6 +31,7 @@ import fsspec
 import yaml
 from loguru import logger
 
+from src.cli.completion import get_fsspec_filesystem
 from src.domain.models import VariableExtractor
 from src.infrastructure.ssh_config import SSHConfigParser
 
@@ -125,10 +126,20 @@ def _read_file_content(path: str) -> str:
     converted_path = _convert_to_local_if_same_host(path)
 
     if _is_fsspec_uri(converted_path):
-        # Use fsspec to read remote files
+        # Use fsspec with SSH config support to read remote files
         try:
-            with fsspec.open(converted_path, "r") as f:
-                return f.read()
+            fs = get_fsspec_filesystem(converted_path)
+            parsed = urlparse(converted_path)
+            # Extract path from URI (remove protocol://host part)
+            if parsed.scheme in ("ssh", "sftp"):
+                # For ssh/sftp, path is everything after host
+                file_path = parsed.path
+            else:
+                file_path = converted_path
+
+            # Read file content
+            content_bytes = fs.cat(file_path)
+            return content_bytes.decode("utf-8")
         except FileNotFoundError as e:
             raise FileNotFoundError(f"File not found at URI: {converted_path}") from e
         except Exception as e:

@@ -121,10 +121,23 @@ class FileStream:
             self.file_handle.seek(0)
         except (OSError, AttributeError):
             # Some protocols don't support seeking
-            # Close and reopen the file
+            # Close and reopen the file with SSH config support
             self.close()
             normalized_uri = normalize_uri_for_fsspec(self.uri)
-            self.file_handle = fsspec.open(normalized_uri, mode="r", encoding="utf-8").open()
+            fs = get_fsspec_filesystem(self.uri)
+            parsed = urlparse(normalized_uri)
+            protocol_part = parsed.scheme or "file"
+
+            # Extract the path component
+            if protocol_part in ("ssh", "sftp", "s3"):
+                file_path = parsed.path
+            elif protocol_part == "file":
+                file_path = parsed.path
+            else:
+                # Local path without protocol
+                file_path = normalized_uri
+
+            self.file_handle = fs.open(file_path, mode="r", encoding="utf-8")
 
         line_number = 1
         for line in self.file_handle:

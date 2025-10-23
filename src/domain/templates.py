@@ -6,9 +6,11 @@ Supports loading templates from any fsspec-compatible location.
 import fsspec
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 from jinja2 import Template, TemplateError
 
+from src.cli.completion import get_fsspec_filesystem
 from src.infrastructure.github import GitHubURIParser
 from src.infrastructure.uri_utils import is_fsspec_uri
 
@@ -45,10 +47,20 @@ def load_template(uri: str) -> str:
                 raise FileNotFoundError(f"Template not found at URI: {uri}") from e
 
         else:
-            # Use fsspec to open other remote URIs
+            # Use fsspec with SSH config support to open other remote URIs
             try:
-                with fsspec.open(uri, "r") as f:
-                    content = f.read()
+                fs = get_fsspec_filesystem(uri)
+                parsed = urlparse(uri)
+                # Extract path from URI (remove protocol://host part)
+                if parsed.scheme in ("ssh", "sftp"):
+                    # For ssh/sftp, path is everything after host
+                    file_path = parsed.path
+                else:
+                    file_path = uri
+
+                # Read file content
+                content_bytes = fs.cat(file_path)
+                content = content_bytes.decode("utf-8")
                 return content
             except FileNotFoundError as e:
                 raise FileNotFoundError(f"Template not found at URI: {uri}") from e

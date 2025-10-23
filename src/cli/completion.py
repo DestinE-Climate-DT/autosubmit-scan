@@ -121,11 +121,17 @@ def get_fsspec_filesystem(uri: str) -> fsspec.AbstractFileSystem:
         fs = fsspec.filesystem("s3", anon=False)
     elif protocol in ("ssh", "sftp"):
         # Build fsspec filesystem with proper settings
+        # Pass the SSH alias (not resolved hostname) and config=() so asyncssh
+        # reads all SSH config settings including ProxyJump, User, etc.
         fs_kwargs = {
-            "host": ssh_config["hostname"],
-            "username": parsed.username or ssh_config["user"],
-            "port": ssh_config["port"],
+            "host": hostname,  # Use alias so asyncssh reads SSH config
+            "config": (),      # Tell asyncssh to read ~/.ssh/config
         }
+
+        # Only override username if explicitly specified in URI
+        # Otherwise let asyncssh read it from SSH config
+        if parsed.username:
+            fs_kwargs["username"] = parsed.username
 
         # Note: fsspec's sshfs uses asyncssh which automatically discovers keys from
         # ~/.ssh/ and ssh-agent, so we don't need to explicitly specify key_filename

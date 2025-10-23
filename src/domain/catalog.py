@@ -11,12 +11,14 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 import fsspec
 import yaml
 from jinja2 import Template
 from loguru import logger
 
+from src.cli.completion import get_fsspec_filesystem
 from src.domain.models import ErrorCatalog
 from src.infrastructure.github import GitHubURIParser
 from src.infrastructure.uri_utils import is_fsspec_uri
@@ -68,9 +70,18 @@ def load_catalog(path: str) -> ErrorCatalog:
             except Exception as e:
                 raise RuntimeError(f"Failed to load catalog from {path}: {e}") from e
         else:
-            # Use fsspec to open other remote URIs
+            # Use fsspec with SSH config support to open other remote URIs
             try:
-                with fsspec.open(path, "r") as f:
+                fs = get_fsspec_filesystem(path)
+                parsed = urlparse(path)
+                # Extract path from URI (remove protocol://host part)
+                if parsed.scheme in ("ssh", "sftp"):
+                    # For ssh/sftp, path is everything after host
+                    file_path = parsed.path
+                else:
+                    file_path = path
+
+                with fs.open(file_path, "r") as f:
                     data = yaml.safe_load(f)
             except FileNotFoundError as e:
                 raise FileNotFoundError(f"Catalog not found at URI: {path}") from e

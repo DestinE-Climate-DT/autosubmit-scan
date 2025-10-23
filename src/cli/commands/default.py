@@ -216,11 +216,13 @@ def run_default_scan(expid: str, cores: int = 4, verbose: int = 0):
         logger.success(f"Loaded catalog with {len(catalog.errors)} default error checks")
     except ValidationError as e:
         logger.error(f"Invalid catalog template: {e}")
-        catalog_path.unlink()
+        if catalog_path.exists():
+            catalog_path.unlink()
         sys.exit(1)
     except Exception as e:
         logger.error(f"Failed to load catalog: {e}")
-        catalog_path.unlink()
+        if catalog_path.exists():
+            catalog_path.unlink()
         sys.exit(1)
 
     # Create output directory
@@ -241,11 +243,11 @@ def run_default_scan(expid: str, cores: int = 4, verbose: int = 0):
     logger.info("Starting scan workflow...")
 
     try:
-        # Invoke scan command with our temporary catalog
+        # Invoke scan command with the saved catalog
         ctx = click.Context(scan)
         ctx.invoke(
             scan,
-            catalog=str(catalog_path),
+            catalog=str(saved_catalog),  # Use persistent catalog path
             output=str(output_dir),
             cores=cores,
             dryrun=False,
@@ -254,11 +256,10 @@ def run_default_scan(expid: str, cores: int = 4, verbose: int = 0):
         )
     except Exception as e:
         logger.error(f"Scan failed: {e}")
-        catalog_path.unlink()
         sys.exit(1)
     finally:
-        # Clean up temporary catalog
-        if catalog_path.exists():
+        # Clean up temporary catalog file (if different from saved catalog)
+        if catalog_path.exists() and catalog_path != saved_catalog:
             catalog_path.unlink()
 
     logger.success(f"\nScan completed for experiment {expid}")
