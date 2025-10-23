@@ -81,12 +81,20 @@ def export(report_path, template, output):
         matches_data = []
         if "hasPart" in report_data:
             for match in report_data["hasPart"]:
-                # Extract key information
+                # Extract error_id from errorDefinition (can be dict or string)
+                error_def = match.get("errorDefinition", "unknown")
+                if isinstance(error_def, dict):
+                    # Extract @id from dict and remove # prefix
+                    error_id = error_def.get("@id", "unknown").lstrip("#")
+                else:
+                    error_id = error_def
+
+                # Extract key information with template-compatible field names
                 match_info = {
-                    "error_id": match.get("errorDefinition", "unknown"),
-                    "file_uri": match.get("url", "unknown"),
-                    "line_number": match.get("position", 0),
-                    "matched_text": match.get("text", ""),
+                    "error_id": error_id,
+                    "file": match.get("url", "unknown"),  # Template expects "file"
+                    "line": match.get("lineNumber", match.get("position", 0)),  # Try both field names
+                    "text": match.get("text", ""),  # Template expects "text"
                     "date_found": match.get("dateFound", ""),
                     "context_before": match.get("context", {}).get("before", []),
                     "context_after": match.get("context", {}).get("after", []),
@@ -96,19 +104,20 @@ def export(report_path, template, output):
                 matches_data.append(match_info)
 
         # Group matches by error type
-        matches_by_error = {}
+        errors_by_type = {}  # Template expects "errors_by_type"
         for match in matches_data:
             error_id = match["error_id"]
-            if error_id not in matches_by_error:
-                matches_by_error[error_id] = []
-            matches_by_error[error_id].append(match)
+            if error_id not in errors_by_type:
+                errors_by_type[error_id] = []
+            errors_by_type[error_id].append(match)
 
         # Prepare template data
         template_data = {
             "report": report_data,
             "summary": report_data.get("summary", {}),
             "matches": matches_data,
-            "matches_by_error": matches_by_error,
+            "errors_by_type": errors_by_type,  # Template expects this name
+            "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),  # Template expects "date"
             "metadata": {
                 "generated_at": datetime.now().isoformat(),
                 "report_date": report_data.get("dateCreated", ""),

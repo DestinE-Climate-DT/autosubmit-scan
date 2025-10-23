@@ -158,11 +158,12 @@ def get_default_template_variables(expid: str) -> dict:
     }
 
 
-def run_default_scan(expid: str, verbose: int = 0):
+def run_default_scan(expid: str, cores: int = 4, verbose: int = 0):
     """Run default scan for an Autosubmit experiment.
 
     Args:
         expid: Experiment ID
+        cores: Number of CPU cores for Snakemake
         verbose: Verbosity level (0=INFO, 1=DEBUG, 2=TRACE)
     """
     logger.info(f"Running default scan for experiment: {expid}")
@@ -246,7 +247,7 @@ def run_default_scan(expid: str, verbose: int = 0):
             scan,
             catalog=str(catalog_path),
             output=str(output_dir),
-            cores=4,  # Default to 4 cores
+            cores=cores,
             dryrun=False,
             force=False,
             verbose=verbose,  # Pass through verbose flag
@@ -270,7 +271,8 @@ def run_default_scan(expid: str, verbose: int = 0):
 # Click command wrapper (hidden from help, used internally)
 @click.command(name="default", hidden=True)
 @click.argument("expid")
+@click.option("--cores", default=4, type=int, help="Number of CPU cores for Snakemake [default: 4]")
 @click.option("--verbose", "-v", count=True, help="Increase verbosity (can be repeated: -v for DEBUG, -vv for TRACE)")
-def default(expid, verbose):
+def default(expid, cores, verbose):
     """Run default scan for an Autosubmit experiment (internal command)."""
-    run_default_scan(expid, verbose=verbose)
+    run_default_scan(expid, cores=cores, verbose=verbose)

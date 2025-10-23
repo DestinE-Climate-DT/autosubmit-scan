@@ -3,14 +3,17 @@ Snakemake Workflow for Error Scanning (File-Centric Architecture)
 
 This workflow implements efficient file-centric error scanning:
 1. File discovery (checkpoint) - Find ALL unique files across ALL error patterns
-2. File fingerprinting (checkpoint) - Create metadata fingerprint for each unique file
-3. Multi-pattern scanning (rule) - Scan each file ONCE for ALL error patterns
-4. Result splitting (rule) - Split combined results by error type
-5. Result aggregation (rule) - Combine all matches for each error
+2. Multi-pattern scanning (rule) - Scan each file ONCE for ALL error patterns
+3. Result aggregation (rule) - Extract and combine matches for each error (in-memory splitting)
 
 Key improvement: Each remote file is opened and read EXACTLY ONCE, regardless of
 how many error patterns are being checked. This dramatically reduces SSH connections
 and I/O operations, preventing timeouts and connection drops.
+
+Job count: 1 + N_files + N_errors (minimal possible for this architecture)
+- 1 discovery job (checkpoint to find all files)
+- N_files scan jobs (one per unique file)
+- N_errors aggregate jobs (one per error type)
 
 Usage:
     snakemake --snakefile src/orchestration/Snakefile --configfile config/workflow_config.yaml --cores 4
@@ -27,7 +30,6 @@ from src.domain.catalog import load_catalog
 from src.orchestration.helpers import (
     get_file_hash,
     expand_fsspec_patterns,
-    get_fingerprint,
     read_manifest,
     write_manifest,
     get_error_definition,
@@ -50,7 +52,6 @@ ERROR_IDS = list(CATALOG.errors.keys())
 
 # Output directories
 MANIFESTS_DIR = config["output_dirs"]["manifests"]
-FINGERPRINTS_DIR = config["output_dirs"]["fingerprints"]
 RESULTS_DIR = config["output_dirs"]["results"]
 AGGREGATED_DIR = config["output_dirs"]["aggregated"]
 
@@ -94,15 +95,15 @@ checkpoint discover_all_unique_files:
 
 
 # ============================================================================
-# CHECKPOINT: File Fingerprinting
-# Creates fingerprints for caching and change detection (ONE per unique file)
+# RULE: Scan File for All Patterns (Multi-Pattern Scanning)
+# Opens file ONCE and scans for ALL error patterns in memory
 # ============================================================================
 
-checkpoint fingerprint_file:
+rule scan_file_all_patterns:
     input:
         manifest=f"{MANIFESTS_DIR}/all_unique_files.txt"
     output:
-        fingerprint=f"{FINGERPRINTS_DIR}/{{file_hash}}.json"
+        results=f"{RESULTS_DIR}/combined/{{file_hash}}_all_errors.json"
     run:
         # Read the manifest to get file URIs
         file_uris = read_manifest(input.manifest)
@@ -117,34 +118,8 @@ checkpoint fingerprint_file:
         if target_uri is None:
             raise ValueError(f"No file found with hash {wildcards.file_hash}")
 
-        # Get fingerprint
-        fingerprint = get_fingerprint(target_uri)
-
-        # Write fingerprint JSON
-        Path(output.fingerprint).parent.mkdir(parents=True, exist_ok=True)
-        with open(output.fingerprint, 'w') as f:
-            json.dump(fingerprint, f, indent=2)
-
-
-# ============================================================================
-# RULE: Scan File for All Patterns (Multi-Pattern Scanning)
-# Opens file ONCE and scans for ALL error patterns in memory
-# ============================================================================
-
-rule scan_file_all_patterns:
-    input:
-        fingerprint=f"{FINGERPRINTS_DIR}/{{file_hash}}.json"
-    output:
-        results=f"{RESULTS_DIR}/combined/{{file_hash}}_all_errors.json"
-    run:
-        # Load fingerprint to get file URI
-        with open(input.fingerprint, 'r') as f:
-            fingerprint = json.load(f)
-
-        file_uri = fingerprint["uri"]
-
         # Scan file for ALL error patterns in one pass
-        all_matches = scan_file_for_all_patterns(file_uri, CATALOG)
+        all_matches = scan_file_for_all_patterns(target_uri, CATALOG)
 
         # Convert ErrorMatch objects to JSON
         results_by_error = {}
@@ -157,40 +132,17 @@ rule scan_file_all_patterns:
             json.dump(results_by_error, f, indent=2)
 
         total_matches = sum(len(matches) for matches in all_matches.values())
-        print(f"Scanned {file_uri}: found {total_matches} total matches across {len(all_matches)} error types")
-
-
-# ============================================================================
-# RULE: Split Results by Error Type
-# Extracts results for a specific error from the combined results
-# ============================================================================
-
-rule split_results_by_error:
-    input:
-        combined=f"{RESULTS_DIR}/combined/{{file_hash}}_all_errors.json"
-    output:
-        split=f"{RESULTS_DIR}/by_error/{{error_id}}/{{file_hash}}.json"
-    run:
-        # Load combined results
-        with open(input.combined, 'r') as f:
-            all_results = json.load(f)
-
-        # Extract matches for this specific error
-        error_matches = all_results.get(wildcards.error_id, [])
-
-        # Write split results
-        Path(output.split).parent.mkdir(parents=True, exist_ok=True)
-        with open(output.split, 'w') as f:
-            json.dump(error_matches, f, indent=2)
+        print(f"Scanned {target_uri}: found {total_matches} total matches across {len(all_matches)} error types")
 
 
 # ============================================================================
 # RULE: Aggregate Results by Error
 # Combines all file results for each error type
+# Reads combined results and extracts matches for each error in-memory
 # ============================================================================
 
-def get_split_files_for_error(wildcards):
-    """Get all split result files for a specific error after file discovery."""
+def get_combined_files_for_aggregation(wildcards):
+    """Get all combined result files after file discovery."""
     # Wait for file discovery checkpoint
     checkpoints.discover_all_unique_files.get()
 
@@ -201,27 +153,29 @@ def get_split_files_for_error(wildcards):
     # Get file hashes
     file_hashes = [get_file_hash(uri) for uri in file_uris]
 
-    # Expand to split result files for this error
+    # Return combined files (not split files - we do splitting in-memory)
     return expand(
-        f"{RESULTS_DIR}/by_error/{{error_id}}/{{file_hash}}.json",
-        error_id=wildcards.error_id,
+        f"{RESULTS_DIR}/combined/{{file_hash}}_all_errors.json",
         file_hash=file_hashes
     )
 
 
 rule aggregate_by_error:
     input:
-        split_files=get_split_files_for_error
+        combined_files=get_combined_files_for_aggregation
     output:
         aggregated=f"{AGGREGATED_DIR}/{{error_id}}_all_matches.json"
     run:
         all_matches = []
 
-        # Combine all matches from all files
-        for result_file in input.split_files:
-            with open(result_file, 'r') as f:
-                file_matches = json.load(f)
-            all_matches.extend(file_matches)
+        # Read combined files and extract matches for THIS error
+        for combined_file in input.combined_files:
+            with open(combined_file, 'r') as f:
+                all_results = json.load(f)
+
+            # Extract matches for this specific error
+            error_matches = all_results.get(wildcards.error_id, [])
+            all_matches.extend(error_matches)
 
         # Write aggregated results
         Path(output.aggregated).parent.mkdir(parents=True, exist_ok=True)
