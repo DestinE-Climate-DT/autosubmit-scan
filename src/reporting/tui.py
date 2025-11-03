@@ -107,7 +107,7 @@ class ErrorReportApp(App):
 
                 # Add individual matches
                 for match in file_matches:
-                    line = match.get("position", "?")
+                    line = match.get("lineNumber", match.get("position", "?"))
                     text = match.get("text", "")[:50]  # Truncate long text
                     match_node = file_node.add(f"Line {line}: {text}")
                     match_node.data = match  # Store match data for detail view
@@ -143,7 +143,7 @@ class ErrorReportApp(App):
         lines = []
         lines.append(f"[bold]Error:[/bold] {match.get('errorDefinition', 'unknown')}")
         lines.append(f"[bold]File:[/bold] {match.get('url', 'unknown')}")
-        lines.append(f"[bold]Line:[/bold] {match.get('position', '?')}")
+        lines.append(f"[bold]Line:[/bold] {match.get('lineNumber', match.get('position', '?'))}")
         lines.append(f"[bold]Date:[/bold] {match.get('dateFound', 'unknown')}")
         lines.append("")
         lines.append("[bold]Matched Text:[/bold]")

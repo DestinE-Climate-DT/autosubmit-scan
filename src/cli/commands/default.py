@@ -263,10 +263,41 @@ def run_default_scan(expid: str, cores: int = 4, verbose: int = 0):
             catalog_path.unlink()
 
     logger.success(f"\nScan completed for experiment {expid}")
-    logger.info(f"Results saved to: {output_dir}")
+
+    # Auto-export to markdown
+    report_json = output_dir / "report.json"
+    if report_json.exists():
+        from src.cli.commands.export import export
+
+        logger.info("Generating markdown report...")
+        report_md = output_dir / "report.md"
+
+        try:
+            ctx = click.Context(export)
+            ctx.invoke(
+                export,
+                report_path=str(report_json),
+                template="markdown",
+                output=str(report_md),
+            )
+            logger.success(f"Markdown report: {report_md}")
+
+            # Display markdown content to screen
+            print("\n" + "="*80)
+            print("MARKDOWN REPORT")
+            print("="*80 + "\n")
+            with open(report_md, "r") as f:
+                print(f.read())
+            print("\n" + "="*80)
+
+        except Exception as e:
+            logger.warning(f"Failed to generate markdown report: {e}")
+            logger.info("You can generate it manually with: as-scan export {report_json} --template markdown")
+
+    logger.info(f"\nResults saved to: {output_dir}")
     logger.info("\nNext steps:")
-    logger.info(f"  View results: as-scan view {output_dir}/report.json")
-    logger.info(f"  Export report: as-scan export {output_dir}/report.json --template markdown")
+    logger.info(f"  View report:  cat {output_dir}/report.md")
+    logger.info(f"  View in TUI:  as-scan view {output_dir}/report.json")
 
 
 # Click command wrapper (hidden from help, used internally)
